@@ -1,0 +1,90 @@
+export interface Exercise {
+  id: string;
+  name: string;
+  sets: string;
+  reps: string;
+  type: 'cardio' | 'strength' | 'core' | 'mobility' | 'bodyweight';
+  val: number;
+  unit: string;
+  note: string;
+  desc: string;
+}
+
+export interface Section {
+  title: string;
+  items: Exercise[];
+  isAdHoc?: boolean;
+}
+
+export interface DayPlan {
+  id: string;
+  title: string;
+  subtitle: string;
+  sections: Section[];
+}
+
+export interface Plan {
+  [key: string]: DayPlan;
+}
+
+export interface NutritionLog {
+  protein?: string;
+  calories?: string;
+  notes?: string;
+}
+
+export interface BodyStats {
+  weight: number | string;
+  waist: number | string;
+  history: {
+    date: string;
+    weight: number | string;
+    waist: number | string;
+  }[];
+}
+
+export interface SkillLevel {
+  id: string;
+  currentLevel: number; // 1-based index
+}
+
+export interface HistoryEntry {
+  date: string;
+  value: string;
+  note?: string;
+}
+
+export interface NutritionHistoryEntry {
+  date: string;
+  protein: number;
+  calories: number;
+}
+
+export interface UserData {
+  completed: string[];
+  intensities: Record<string, number>;
+  actuals: Record<string, string>;
+  lastWeekActuals: Record<string, string>;
+  nutrition: Record<string, NutritionLog>;
+  bodyStats: BodyStats;
+  skillLevels: Record<string, number>;
+  weekCount: number;
+  weekStartDate: string | null;
+  plan: Plan | null;
+  exerciseHistory: Record<string, HistoryEntry[]>;
+  nutritionHistory: NutritionHistoryEntry[];
+  masterExerciseList: string[];
+}
+
+export interface SkillNode {
+  level: number;
+  title: string;
+  criteria: string;
+}
+
+export interface SkillTreeDef {
+  id: string;
+  title: string;
+  description: string;
+  nodes: SkillNode[];
+}
