@@ -65,7 +65,7 @@ const generateSeedList = () => {
         SAFE_ALTERNATIVES[k].forEach(v => seed.add(v.name));
    });
    // Add from SPEEDIANCE_LIBRARY
-   SPEEDIANCE_LIBRARY.forEach(ex => seed.add(ex));
+  SPEEDIANCE_LIBRARY.forEach(ex => seed.add(ex.name));
    return Array.from(seed).sort();
 };
 
@@ -84,7 +84,6 @@ export default function App() {
   const [exerciseHistory, setExerciseHistory] = useState<Record<string, HistoryEntry[]>>({});
   const [nutritionHistory, setNutritionHistory] = useState<NutritionHistoryEntry[]>([]);
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({});
-  
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showFuelModal, setShowFuelModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -191,6 +190,7 @@ export default function App() {
   };
 
   const handleLogFuel = (date: string, data: NutritionLog) => {
+    console.log('[Nutrition] Log request', { date, data });
     // 1. Check if date corresponds to a day in the current week to update weekly view
     if (weekStartDate) {
        const start = new Date(weekStartDate);
@@ -207,7 +207,11 @@ export default function App() {
            const dayKey = days[diffDays];
            const newNutritionLogs = { ...nutritionLogs, [dayKey]: data };
            setNutritionLogs(newNutritionLogs);
-           storageService.saveUserData({ nutrition: newNutritionLogs });
+           storageService.saveUserData({ nutrition: newNutritionLogs }).then(() => {
+             console.log('[Nutrition] Weekly log saved to Firestore', { dayKey, date, data });
+           }).catch(err => {
+             console.error('[Nutrition] Error saving weekly log', err);
+           });
        }
     }
 
@@ -231,7 +235,11 @@ export default function App() {
     }
     
     setNutritionHistory(newHistory);
-    storageService.saveUserData({ nutritionHistory: newHistory });
+    storageService.saveUserData({ nutritionHistory: newHistory }).then(() => {
+      console.log('[Nutrition] History saved to Firestore', entry);
+    }).catch(err => {
+      console.error('[Nutrition] Error saving history', err);
+    });
   };
 
   const saveBodyStats = (dateOverride?: string) => {
@@ -333,42 +341,71 @@ export default function App() {
     let changes: string[] = [];
     const newPlan = JSON.parse(JSON.stringify(currentPlan));
 
+    const deloadStrength = (item: any) => {
+      const currentReps = parseInt(item.reps) || 0;
+      if (item.val && item.val > 0) {
+        item.val = Math.max(0, item.val - 5);
+        changes.push(`${item.name}: Deload -5lbs`);
+      } else if (currentReps > 6) {
+        item.reps = `${currentReps - 2} reps`;
+        changes.push(`${item.name}: Deload reps ${currentReps} -> ${currentReps - 2}`);
+      }
+    };
+
+    const deloadTime = (item: any) => {
+      const newVal = Math.max(5, Math.floor(item.val * 0.9));
+      if (newVal !== item.val) {
+        changes.push(`${item.name}: Deload time ${item.val} -> ${newVal}${item.unit}`);
+        item.val = newVal;
+      }
+    };
+
     Object.keys(newPlan).forEach(dayKey => {
       newPlan[dayKey].sections.forEach((section: any) => {
         section.items.forEach((item: any) => {
           const rpe = intensities[item.id];
           
-          if (rpe) {
-             // 1. Strength Logic (Double Progression)
-             if (item.type === 'strength') {
-                 // Convert reps string "10 reps" to number 10
-                 const currentReps = parseInt(item.reps) || 0;
-                 
-                 if (currentReps < 12 && rpe <= 7) {
-                     // Phase 1: Build Volume
-                     const newReps = currentReps + 2;
-                     item.reps = `${newReps} reps`;
-                     changes.push(`${item.name}: Reps ${currentReps} -> ${newReps}`);
-                 } else if (currentReps >= 12 && rpe <= 7) {
-                     // Phase 2: Add Load, Cut Volume
-                     item.val += 5; // Add 5lbs
-                     item.reps = "8 reps"; // Reset to base volume
-                     changes.push(`${item.name}: +5lbs (Reps reset to 8)`);
-                 }
-             }
-             // 2. Bodyweight/Core Logic
-             else if (item.type === 'bodyweight' || item.type === 'core') {
-                 const currentReps = parseInt(item.reps) || 0;
-                 if (currentReps < 20 && rpe <= 6) {
-                     item.reps = `${currentReps + 2} reps`;
-                     changes.push(`${item.name}: +2 Reps`);
-                 }
-             }
-             // 3. Time Based Logic
-             else if ((item.unit === 'sec' || item.unit === 'min') && rpe <= 6) {
-                 item.val = Math.ceil(item.val * 1.1); // +10%
-                 changes.push(`${item.name}: +10% Time`);
-             }
+          if (rpe === undefined) return;
+
+          // High RPE -> deload/no change
+          if (rpe >= 8) {
+            if (item.type === 'strength') {
+              deloadStrength(item);
+            } else if (item.unit === 'sec' || item.unit === 'min') {
+              deloadTime(item);
+            }
+            return;
+          }
+
+          // Strength progression (double progression)
+          if (item.type === 'strength') {
+            const currentReps = parseInt(item.reps) || 0;
+            if (currentReps < 12 && rpe <= 7) {
+              const newReps = currentReps + 2;
+              item.reps = `${newReps} reps`;
+              changes.push(`${item.name}: Reps ${currentReps} -> ${newReps}`);
+            } else if (currentReps >= 12 && rpe <= 7) {
+              item.val += 5; // Add 5lbs
+              item.reps = "8 reps"; // Reset to base volume
+              changes.push(`${item.name}: +5lbs (Reps reset to 8)`);
+            }
+          }
+          // Bodyweight/Core progression
+          else if (item.type === 'bodyweight' || item.type === 'core') {
+            const currentReps = parseInt(item.reps) || 0;
+            if (currentReps < 20 && rpe <= 6) {
+              item.reps = `${currentReps + 2} reps`;
+              changes.push(`${item.name}: +2 Reps`);
+            } else if (rpe <= 6 && (item.unit === 'sec' || item.unit === 'min')) {
+              // time-based core
+              item.val = Math.ceil(item.val * 1.1);
+              changes.push(`${item.name}: +10% Time`);
+            }
+          }
+          // Mobility / time-based progression
+          else if ((item.unit === 'sec' || item.unit === 'min') && rpe <= 6) {
+            item.val = Math.ceil(item.val * 1.1); // +10%
+            changes.push(`${item.name}: +10% Time`);
           }
         });
       });
@@ -435,7 +472,7 @@ export default function App() {
     });
 
     // 3. Sync Master List with new plan
-    const newMasterList = new Set(masterExerciseList);
+    const newMasterList = new Set<string>(masterExerciseList);
     (Object.values(newPlan) as DayPlan[]).forEach(day => {
         day.sections.forEach(s => {
             s.items.forEach(i => {

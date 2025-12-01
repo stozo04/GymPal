@@ -1,11 +1,8 @@
 {
   "hosting": {
+    "site": "gympal-f34b3",
     "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "**",
@@ -14,3 +11,4 @@
     ]
   }
 }
+
