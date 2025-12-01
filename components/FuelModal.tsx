@@ -48,7 +48,7 @@ export const FuelModal: React.FC<FuelModalProps> = ({ onClose, onSave }) => {
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                         <input 
                             type="date" 
-                            className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-3 text-white focus:border-emerald-500 outline-none appearance-none text-sm font-medium"
+                            className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-3 text-white focus:border-emerald-500 outline-none text-sm font-medium cursor-pointer"
                             value={date}
                             onChange={(e) => setDate(e.target.value)}
                         />
