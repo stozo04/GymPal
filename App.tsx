@@ -83,6 +83,7 @@ export default function App() {
   const [masterExerciseList, setMasterExerciseList] = useState<string[]>([]);
   const [exerciseHistory, setExerciseHistory] = useState<Record<string, HistoryEntry[]>>({});
   const [nutritionHistory, setNutritionHistory] = useState<NutritionHistoryEntry[]>([]);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({});
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showFuelModal, setShowFuelModal] = useState(false);
@@ -206,13 +207,15 @@ export default function App() {
            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
            const dayKey = days[diffDays];
            const newNutritionLogs = { ...nutritionLogs, [dayKey]: data };
-           setNutritionLogs(newNutritionLogs);
-           storageService.saveUserData({ nutrition: newNutritionLogs }).then(() => {
-             console.log('[Nutrition] Weekly log saved to Firestore', { dayKey, date, data });
-           }).catch(err => {
-             console.error('[Nutrition] Error saving weekly log', err);
-           });
-       }
+          setNutritionLogs(newNutritionLogs);
+          storageService.saveUserData({ nutrition: newNutritionLogs }).then(() => {
+            console.log('[Nutrition] Weekly log saved to Firestore', { dayKey, date, data });
+            setToast({ type: 'success', message: `Fuel saved for ${date}.` });
+          }).catch(err => {
+            console.error('[Nutrition] Error saving weekly log', err);
+            setToast({ type: 'error', message: 'Failed to save fuel.' });
+          });
+        }
     }
 
     // 2. Always update long-term history
@@ -237,8 +240,10 @@ export default function App() {
     setNutritionHistory(newHistory);
     storageService.saveUserData({ nutritionHistory: newHistory }).then(() => {
       console.log('[Nutrition] History saved to Firestore', entry);
+      setToast({ type: 'success', message: `Nutrition saved for ${date}.` });
     }).catch(err => {
       console.error('[Nutrition] Error saving history', err);
+      setToast({ type: 'error', message: 'Failed to save nutrition history.' });
     });
   };
 
@@ -881,13 +886,23 @@ export default function App() {
       )}
 
       {/* Fuel Log Modal */}
-      {showFuelModal && (
-        <FuelModal 
-            onClose={() => setShowFuelModal(false)}
-            onSave={handleLogFuel}
-        />
-      )}
+          {showFuelModal && (
+            <FuelModal 
+                onClose={() => setShowFuelModal(false)}
+                onSave={handleLogFuel}
+            />
+          )}
 
-    </div>
+          {toast && (
+            <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold z-50 ${
+              toast.type === 'success' 
+                ? 'bg-emerald-900/90 border-emerald-500/40 text-emerald-100' 
+                : 'bg-red-900/90 border-red-500/40 text-red-100'
+            }`}>
+              {toast.message}
+            </div>
+          )}
+
+        </div>
   );
 }
