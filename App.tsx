@@ -90,6 +90,12 @@ export default function App() {
   const [showMenu, setShowMenu] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   // Data Sync
   useEffect(() => {
     const unsubscribe = storageService.subscribe((data) => {
@@ -210,7 +216,7 @@ export default function App() {
           setNutritionLogs(newNutritionLogs);
           storageService.saveUserData({ nutrition: newNutritionLogs }).then(() => {
             console.log('[Nutrition] Weekly log saved to Firestore', { dayKey, date, data });
-            setToast({ type: 'success', message: `Fuel saved for ${date}.` });
+            setToast({ type: 'success', message: 'Fuel saved' });
           }).catch(err => {
             console.error('[Nutrition] Error saving weekly log', err);
             setToast({ type: 'error', message: 'Failed to save fuel.' });
@@ -240,7 +246,7 @@ export default function App() {
     setNutritionHistory(newHistory);
     storageService.saveUserData({ nutritionHistory: newHistory }).then(() => {
       console.log('[Nutrition] History saved to Firestore', entry);
-      setToast({ type: 'success', message: `Nutrition saved for ${date}.` });
+      setToast({ type: 'success', message: 'Nutrition saved' });
     }).catch(err => {
       console.error('[Nutrition] Error saving history', err);
       setToast({ type: 'error', message: 'Failed to save nutrition history.' });
