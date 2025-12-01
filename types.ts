@@ -79,6 +79,7 @@ export interface UserData {
   exerciseHistory: Record<string, HistoryEntry[]>;
   nutritionHistory: NutritionHistoryEntry[];
   masterExerciseList: string[];
+  skipReasons?: Record<string, string>;
 }
 
 export interface SkillNode {

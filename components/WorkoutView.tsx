@@ -34,6 +34,7 @@ interface WorkoutViewProps {
   onSwap: (sectionIdx: number, itemIdx: number, targetVariant?: any) => void;
   onBack: () => void;
   onCompleteDay: () => void;
+  onSkipDay: () => void;
 }
 
 interface SwapConfig {
@@ -45,7 +46,7 @@ interface SwapConfig {
 
 export default function WorkoutView({ 
   dayKey, dateLabel, data, completed, intensities, actuals, lastWeekActuals, masterExerciseList,
-  toggle, setIntensity, setActual, onAddExercise, onSwap, onBack, onCompleteDay
+  toggle, setIntensity, setActual, onAddExercise, onSwap, onBack, onCompleteDay, onSkipDay
 }: WorkoutViewProps) {
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -159,8 +160,15 @@ export default function WorkoutView({
                     {backSaverMode ? "Back Saver Active" : "Enable Back Saver"}
                 </span>
             </button>
+            <button 
+                onClick={onSkipDay}
+                className="self-start flex items-center gap-2 px-4 py-2 rounded-xl border border-red-500/40 text-red-200 bg-red-900/20 hover:bg-red-900/30 transition-all text-xs font-bold uppercase whitespace-nowrap"
+            >
+                <X className="w-4 h-4" />
+                Skip Workout
+            </button>
+          </div>
         </div>
-      </div>
 
       {data.sections.length === 0 && (
         <div className="text-center py-12 bg-slate-900/30 rounded-3xl border border-slate-800 border-dashed">

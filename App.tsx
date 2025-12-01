@@ -85,6 +85,7 @@ export default function App() {
   const [nutritionHistory, setNutritionHistory] = useState<NutritionHistoryEntry[]>([]);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({});
+  const [skipReasons, setSkipReasons] = useState<Record<string, string>>({});
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showFuelModal, setShowFuelModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -109,6 +110,7 @@ export default function App() {
         setWeekCount(data.weekCount || 1);
         setExerciseHistory(data.exerciseHistory || {});
         setNutritionHistory(data.nutritionHistory || []);
+        setSkipReasons(data.skipReasons || {});
         
         // Ensure skill levels are initialized
         const initialSkills: Record<string, number> = {};
@@ -156,7 +158,8 @@ export default function App() {
             weekCount: 1, 
             weekStartDate: start,
             masterExerciseList: seed,
-            skillLevels: initialSkills
+            skillLevels: initialSkills,
+            skipReasons: {}
         });
       }
       setLoading(false);
@@ -198,6 +201,22 @@ export default function App() {
     const newActuals = { ...actuals, [id]: value };
     setActuals(newActuals);
     storageService.saveUserData({ actuals: newActuals });
+  };
+
+  const skipDay = (dayKey: string) => {
+    const reason = prompt("Why are you skipping this workout?");
+    if (!reason || !reason.trim()) {
+      setToast({ type: 'error', message: 'Skip reason required' });
+      return;
+    }
+    const newCompleted = completedWorkouts.includes(dayKey) ? completedWorkouts : [...completedWorkouts, dayKey];
+    const key = `${weekStartDate || 'unknown'}:${dayKey}`;
+    const newSkips = { ...skipReasons, [key]: reason.trim() };
+    setCompletedWorkouts(newCompleted);
+    setSkipReasons(newSkips);
+    storageService.saveUserData({ completed: newCompleted, skipReasons: newSkips })
+      .then(() => setToast({ type: 'success', message: 'Workout skipped' }))
+      .catch(() => setToast({ type: 'error', message: 'Failed to skip workout' }));
   };
 
   const handleLogFuel = (date: string, data: NutritionLog) => {
@@ -499,19 +518,20 @@ export default function App() {
     });
     const updatedMaster = Array.from(newMasterList).sort();
 
-    storageService.saveUserData({
-        plan: newPlan,
-        completed: [],
-        intensities: {},
-        actuals: {},
-        lastWeekActuals: actuals, 
-        nutrition: {},
-        weekCount: weekCount + 1,
-        weekStartDate: newStartDate,
-        exerciseHistory: newHistory,
-        nutritionHistory: newNutriHistory,
-        masterExerciseList: updatedMaster
-    });
+        storageService.saveUserData({ 
+            plan: newPlan,
+            completed: [],
+            intensities: {},
+            actuals: {},
+            lastWeekActuals: actuals, 
+            nutrition: {},
+            weekCount: weekCount + 1,
+            weekStartDate: newStartDate,
+            exerciseHistory: newHistory,
+            nutritionHistory: newNutriHistory,
+            masterExerciseList: updatedMaster,
+            skipReasons: {}
+        });
     
     // Update local state
     setExerciseHistory(newHistory);
@@ -794,6 +814,7 @@ export default function App() {
             onSwap={(sectionIdx, itemIdx, targetVariant) => swapExercise(activeTab, sectionIdx, itemIdx, targetVariant)}
             onBack={() => setActiveTab('schedule')}
             onCompleteDay={() => handleCompleteRestDay(activeTab)}
+            onSkipDay={() => skipDay(activeTab)}
           />
         )}
 
