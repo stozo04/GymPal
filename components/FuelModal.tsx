@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { X, Utensils, CheckCircle2, Calendar, Flame, Droplet, Wheat } from 'lucide-react';
 import { NutritionLog } from '../types';
 
@@ -9,6 +9,7 @@ interface FuelModalProps {
 }
 
 export const FuelModal: React.FC<FuelModalProps> = ({ onClose, onSave }) => {
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [data, setData] = useState<NutritionLog>({
     protein: '',
@@ -48,9 +49,17 @@ export const FuelModal: React.FC<FuelModalProps> = ({ onClose, onSave }) => {
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                         <input 
                             type="date" 
+                            ref={dateInputRef}
                             className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-3 text-white focus:border-emerald-500 outline-none text-sm font-medium cursor-pointer"
                             value={date}
                             onChange={(e) => setDate(e.target.value)}
+                            onClick={() => {
+                              try {
+                                dateInputRef.current?.showPicker?.();
+                              } catch (e) {
+                                // ignore if browser disallows programmatic open
+                              }
+                            }}
                         />
                     </div>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { X, Scale, CheckCircle2, Calendar } from 'lucide-react';
 import { BodyStats } from '../types';
 
@@ -13,6 +13,7 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
   onClose, bodyStats, onUpdateBodyStats, onSaveBodyStats 
 }) => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
@@ -38,9 +39,17 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                         <input 
                             type="date" 
-                            className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-3 text-white focus:border-purple-500 outline-none appearance-none text-sm font-medium"
+                            ref={dateInputRef}
+                            className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-3 text-white focus:border-purple-500 outline-none text-sm font-medium cursor-pointer"
                             value={date}
                             onChange={(e) => setDate(e.target.value)}
+                            onClick={() => {
+                              try {
+                                dateInputRef.current?.showPicker?.();
+                              } catch {
+                                // ignore if browser disallows programmatic open
+                              }
+                            }}
                         />
                     </div>
                 </div>

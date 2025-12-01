@@ -181,13 +181,17 @@ export default function App() {
       ? completedWorkouts.filter(item => item !== id)
       : [...completedWorkouts, id];
     setCompletedWorkouts(newCompleted);
-    storageService.saveUserData({ completed: newCompleted });
+    storageService.saveUserData({ completed: newCompleted }).then(() => {
+      setToast({ type: 'success', message: 'Workout saved' });
+    }).catch(() => setToast({ type: 'error', message: 'Failed to save workout' }));
   };
 
   const saveIntensity = (id: string, value: number) => {
     const newIntensities = { ...intensities, [id]: value };
     setIntensities(newIntensities);
-    storageService.saveUserData({ intensities: newIntensities });
+    storageService.saveUserData({ intensities: newIntensities }).then(() => {
+      setToast({ type: 'success', message: 'Intensity saved' });
+    }).catch(() => setToast({ type: 'error', message: 'Failed to save intensity' }));
   };
 
   const saveActual = (id: string, value: string) => {
@@ -274,7 +278,9 @@ export default function App() {
     
     const updatedStats = { ...bodyStats, history: newHistory };
     setBodyStats(updatedStats);
-    storageService.saveUserData({ bodyStats: updatedStats });
+    storageService.saveUserData({ bodyStats: updatedStats }).then(() => {
+      setToast({ type: 'success', message: 'Body check-in saved' });
+    }).catch(() => setToast({ type: 'error', message: 'Failed to save check-in' }));
   };
 
   const addAdHocExercise = (dayKey: string, exerciseData: any) => {
