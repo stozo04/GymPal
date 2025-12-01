@@ -760,6 +760,7 @@ export default function App() {
                 currentNutrition={nutritionLogs}
                 weekStartDate={weekStartDate}
                 masterExerciseList={masterExerciseList}
+                bodyStats={bodyStats}
             />
         )}
 
