@@ -1,3 +1,4 @@
+
 export interface Exercise {
   id: string;
   name: string;
@@ -30,6 +31,8 @@ export interface Plan {
 export interface NutritionLog {
   protein?: string;
   calories?: string;
+  fat?: string;
+  carbs?: string;
   notes?: string;
 }
 
@@ -58,6 +61,8 @@ export interface NutritionHistoryEntry {
   date: string;
   protein: number;
   calories: number;
+  fat?: number;
+  carbs?: number;
 }
 
 export interface UserData {

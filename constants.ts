@@ -1,4 +1,5 @@
 
+
 import { Plan, SkillTreeDef } from './types';
 
 // --- SAFE ALTERNATIVES DATABASE (L4/L5 Friendly) ---
@@ -632,126 +633,181 @@ export const SKILL_TREES: SkillTreeDef[] = [
 export const INITIAL_PLAN: Plan = {
   monday: {
     id: 'monday',
-    title: "Monday: Structural Foundation",
-    subtitle: "Focus: Pushups, Scapular Control, and Grip.",
+    title: "Monday: Full Body & Core Foundation",
+    subtitle: "Focus: Controlled movements, protecting back.",
     sections: [
       {
-        title: "Warmup & Prep",
+        title: "Warmup",
         items: [
-          { id: 'a1', name: "Cat-Cow Stretch", sets: "2", reps: "10 reps", type: 'mobility', val: 0, unit: '', note: "Lubricate vertebrae.", desc: "On hands and knees. Inhale drop belly, exhale round back." },
-          { id: 'a2', name: "Elephant Walks", sets: "3", reps: "15/side", type: 'mobility', val: 0, unit: '', note: "For hamstrings.", desc: "Hands on floor (or blocks/chair). Bend one knee, straighten the other. Alternate." },
-          { id: 'a0', name: "Scapular Pushups", sets: "2", reps: "10 reps", type: 'mobility', val: 0, unit: '', note: "Straight arms!", desc: "Plank position. Keep elbows LOCKED. Squeeze shoulder blades together, then push them apart." }
+           { id: 'w1', name: "Rower or Elliptical", sets: "1", reps: "5 min", type: 'cardio', val: 5, unit: 'min', note: "Low intensity.", desc: "Get blood flowing." },
+           { id: 'w2', name: "Cat-Cow Stretch", sets: "1", reps: "10 reps", type: 'mobility', val: 0, unit: '', note: "Gentle spinal movement.", desc: "Arch spine then round spine." },
+           { id: 'w3', name: "Arm Circles", sets: "1", reps: "10 reps", type: 'mobility', val: 0, unit: '', note: "Forward & Backward.", desc: "Mobilize shoulders." },
+           { id: 'w4', name: "Leg Swings", sets: "1", reps: "10 reps", type: 'mobility', val: 0, unit: '', note: "Front/Back & Side/Side.", desc: "Mobilize hips." }
         ]
       },
       {
-        title: "Strength (Base Building)",
+        title: "Main Workout",
         items: [
-          { id: 'a3', name: "Dead Hangs", sets: "4", reps: "Max Time", type: 'strength', val: 0, unit: 'sec', note: "Goal: 30s.", desc: "Hang from bar. Don't let shoulders shrug to ears. Squeeze bar tight." },
-          { id: 'a4', name: "Box Squats", sets: "3", reps: "12 reps", type: 'strength', val: 0, unit: 'lbs', note: "Protect lower back.", desc: "Squat to a bench/chair. Sit briefly. Drive up through heels. Keep chest high." },
-          { id: 'a5', name: "Standard Pushups", sets: "3", reps: "Submax", type: 'bodyweight', val: 0, unit: 'reps', note: "Leave 2 reps in tank.", desc: "Core tight. Squeeze glutes. Chest to floor." },
-          { id: 'a6', name: "Dead Bugs", sets: "3", reps: "8/side", type: 'core', val: 0, unit: 'reps', note: "Better than Situps.", desc: "Lie on back. Press low back into floor HARD. Extend opposite arm/leg slowly." }
+          { id: 'm1', name: "Incline Push-ups", sets: "3", reps: "10-15 reps", type: 'strength', val: 0, unit: '', note: "Hands on bench.", desc: "Focus on chest reaching surface, full control." },
+          { id: 'm2', name: "Assisted Rows (Gym Monster)", sets: "3", reps: "10-15 reps", type: 'strength', val: 0, unit: 'lbs', note: "Set cable low.", desc: "Grab handles, lean back slightly, pull to lower chest, squeeze shoulder blades." },
+          { id: 'm3', name: "Dead Bugs", sets: "3", reps: "8-12/side", type: 'core', val: 0, unit: '', note: "Lower back pressed to floor.", desc: "Slowly extend opposite arm/leg without arching back." },
+          { id: 'm4', name: "Glute Bridges", sets: "3", reps: "12-15 reps", type: 'strength', val: 0, unit: '', note: "Squeeze glutes.", desc: "Lift hips, form straight line shoulders to knees." },
+          { id: 'm5', name: "Bodyweight Squats", sets: "3", reps: "10-15 reps", type: 'strength', val: 0, unit: '', note: "Chest up.", desc: "Controlled movement, only go as deep as comfortable with no back strain." }
+        ]
+      },
+      {
+        title: "Cool-down",
+        items: [
+            { id: 'cd1', name: "Child's Pose", sets: "1", reps: "60 sec", type: 'mobility', val: 60, unit: 'sec', note: "Rest for back.", desc: "Hips to heels." },
+            { id: 'cd2', name: "Kneeling Hip Flexor Stretch", sets: "1", reps: "60 sec/side", type: 'mobility', val: 60, unit: 'sec', note: "One knee down.", desc: "Push hips forward gently." },
+            { id: 'cd3', name: "Lying Hamstring Stretch", sets: "1", reps: "60 sec/side", type: 'mobility', val: 60, unit: 'sec', note: "Lie on back.", desc: "Lift leg straight up, pull gently." },
+            { id: 'cd4', name: "Chest Stretch", sets: "1", reps: "60 sec/side", type: 'mobility', val: 60, unit: 'sec', note: "Hand against wall.", desc: "Gently rotate away." }
         ]
       }
     ]
   },
   tuesday: {
     id: 'tuesday',
-    title: "Tuesday: Cardio & Hips",
-    subtitle: "Focus: Rower Conditioning and Hip Openers (Splits).",
+    title: "Tuesday: Active Recovery & Flexibility",
+    subtitle: "Steady cardio and deep stretching.",
     sections: [
-      {
-        title: "Conditioning",
-        items: [
-          { id: 'b1', name: "Rower (Warmup)", sets: "1", reps: "3 min", type: 'cardio', val: 3, unit: 'min', note: "Easy pace.", desc: "Focus on leg drive." },
-          { id: 'b2', name: "Rower (Intervals)", sets: "5", reps: "30s Sprint", type: 'cardio', val: 0, unit: '', note: "30s ON / 30s Rest.", desc: "Drive hard with legs. Do not pull with lower back." }
-        ]
-      },
-      {
-        title: "Splits Flexibility Routine",
-        items: [
-          { id: 'b3', name: "Couch Stretch", sets: "2", reps: "60s/side", type: 'mobility', val: 60, unit: 'sec', note: "Hip Flexor opener.", desc: "Knee against wall/couch. Other foot forward. Squeeze glute of kneeling leg." },
-          { id: 'b4', name: "Frog Stretch", sets: "2", reps: "60s hold", type: 'mobility', val: 60, unit: 'sec', note: "Inner thighs.", desc: "Knees wide on floor. Elbows on floor. Push hips back." },
-          { id: 'b5', name: "Seated Pancake", sets: "1", reps: "2 min", type: 'mobility', val: 2, unit: 'min', note: "Sit legs wide.", desc: "Lean forward with flat back. Don't round spine." }
-        ]
-      }
-    ] 
+        {
+            title: "Cardio",
+            items: [
+                { id: 't1', name: "Elliptical or Rower", sets: "1", reps: "30-45 min", type: 'cardio', val: 45, unit: 'min', note: "Steady, moderate pace.", desc: "Zone 2 cardio." }
+            ]
+        },
+        {
+            title: "Flexibility Session",
+            items: [
+                { id: 't2', name: "Cat-Cow Stretch", sets: "1", reps: "10 reps", type: 'mobility', val: 0, unit: '', note: "Gentle spinal mobility.", desc: "" },
+                { id: 't3', name: "Kneeling Hip Flexor Stretch", sets: "2", reps: "45-60 sec/side", type: 'mobility', val: 60, unit: 'sec', note: "Open hips.", desc: "" },
+                { id: 't4', name: "Lying Hamstring Stretch", sets: "2", reps: "45-60 sec/side", type: 'mobility', val: 60, unit: 'sec', note: "Target hamstrings.", desc: "" },
+                { id: 't5', name: "Pigeon Pose", sets: "2", reps: "45-60 sec/side", type: 'mobility', val: 60, unit: 'sec', note: "Go easy.", desc: "Modified if needed." },
+                { id: 't6', name: "Child's Pose", sets: "1", reps: "2 min", type: 'mobility', val: 2, unit: 'min', note: "Relax.", desc: "" }
+            ]
+        }
+    ]
   },
   wednesday: {
     id: 'wednesday',
-    title: "Wednesday: Pull & Back Health",
-    subtitle: "Focus: Back strength without spinal loading.",
+    title: "Wednesday: Upper Body & Core Strength",
+    subtitle: "Push/Pull balance.",
     sections: [
-      {
-        title: "Warmup",
-        items: [
-          { id: 'c1', name: "Elliptical", sets: "1", reps: "5 min", type: 'cardio', val: 5, unit: 'min', note: "Get blood flowing.", desc: "Low resistance." },
-          { id: 'c2', name: "Bird Dogs", sets: "3", reps: "5/side", type: 'mobility', val: 0, unit: '', note: "Spine stability.", desc: "Hands/knees. Reach opposite arm/leg. Don't arch back." }
-        ]
-      },
-      {
-        title: "Strength (Gym Monster)",
-        items: [
-          { id: 'c3', name: "Gym Monster Lat Pulldown", sets: "3", reps: "10 reps", type: 'strength', val: 20, unit: 'lbs', note: "Pull-up builder.", desc: "Use cable attachment. Sit on floor or bench. Pull to chest." },
-          { id: 'c4', name: "Cable Pull-Throughs", sets: "3", reps: "15 reps", type: 'strength', val: 10, unit: 'lbs', note: "Safe Deadlift alt.", desc: "Face away from machine. Rope between legs. Hinge hips back until stretch. Squeeze glutes to stand." },
-          { id: 'c5', name: "Dead Bug (Wall Press)", sets: "3", reps: "10 reps", type: 'core', val: 0, unit: 'reps', note: "Replaces Hollow Body.", desc: "Lie on back. Head near wall. Press hands into wall. Keep spine flat while moving legs." }
-        ]
-      }
+        {
+            title: "Warmup",
+            items: [
+                { id: 'w_wed', name: "Rower (Warmup)", sets: "1", reps: "5 min", type: 'cardio', val: 5, unit: 'min', note: "Light pace.", desc: "" },
+                { id: 'w_dyn', name: "Dynamic Stretches", sets: "1", reps: "Complete routine", type: 'mobility', val: 0, unit: '', note: "Cat-Cow, Arm Circles.", desc: "" }
+            ]
+        },
+        {
+            title: "Strength",
+            items: [
+                { id: 'w1', name: "Knee Push-ups", sets: "3", reps: "10-15 reps", type: 'strength', val: 0, unit: '', note: "Or Wall Push-ups.", desc: "Focus on slow, controlled descent – 2 seconds down." },
+                { id: 'w2', name: "Gym Monster Lat Pulldown", sets: "3", reps: "10-15 reps", type: 'strength', val: 0, unit: 'lbs', note: "Feel the lats.", desc: "Pull to upper chest, control the release." },
+                { id: 'w3', name: "Plank", sets: "3", reps: "30-60 sec", type: 'core', val: 60, unit: 'sec', note: "Knees or Full.", desc: "Straight line, brace core, no hip sagging." },
+                { id: 'w4', name: "Side Plank", sets: "3", reps: "20-40 sec/side", type: 'core', val: 40, unit: 'sec', note: "Obliques.", desc: "Knees or Full." },
+                { id: 'w5', name: "Bicep Curls (Gym Monster)", sets: "3", reps: "12-15 reps", type: 'strength', val: 0, unit: 'lbs', note: "Light weight.", desc: "Focus on slow, controlled movement." }
+            ]
+        },
+        {
+            title: "Cool-down",
+            items: [
+                { id: 'cd_wed', name: "Static Stretches", sets: "1", reps: "Routine", type: 'mobility', val: 0, unit: '', note: "See Monday cool-down.", desc: "" }
+            ]
+        }
     ]
   },
   thursday: {
     id: 'thursday',
-    title: "Thursday: Active Recovery",
-    subtitle: "Walk or light mobility.",
+    title: "Thursday: Lower Body & Core Stability",
+    subtitle: "Leg endurance and stability.",
     sections: [
         {
-            title: "Daily Mobility",
+            title: "Warmup",
             items: [
-                { id: 'd1', name: "Elephant Walks", sets: "3", reps: "20 reps", type: 'mobility', val: 0, unit: '', note: "Hamstring loosen.", desc: "Bend one knee, straighten other." }
+                { id: 'w_thu', name: "Elliptical (Warmup)", sets: "1", reps: "5 min", type: 'cardio', val: 5, unit: 'min', note: "", desc: "" },
+                { id: 'w_dyn2', name: "Dynamic Stretches", sets: "1", reps: "Routine", type: 'mobility', val: 0, unit: '', note: "Leg swings focus.", desc: "" }
             ]
+        },
+        {
+            title: "Strength",
+            items: [
+                { id: 'th1', name: "Goblet Squat", sets: "3", reps: "10-15 reps", type: 'strength', val: 0, unit: 'lbs', note: "Bodyweight or very light.", desc: "Perfect form, chest up, control movement." },
+                { id: 'th2', name: "Wall Sit", sets: "3", reps: "30-60 sec", type: 'strength', val: 60, unit: 'sec', note: "Quad endurance.", desc: "No spinal load." },
+                { id: 'th3', name: "Calf Raises", sets: "3", reps: "15-20 reps", type: 'strength', val: 0, unit: '', note: "Squeeze top.", desc: "Raise up onto balls of feet." },
+                { id: 'th4', name: "Hollow Body Hold (Modified)", sets: "3", reps: "20-40 sec", type: 'core', val: 40, unit: 'sec', note: "Low back on floor.", desc: "Arms overhead, legs extended. Bend knees if needed." },
+                { id: 'th5', name: "Bird Dog", sets: "3", reps: "8-12/side", type: 'core', val: 0, unit: '', note: "Neutral spine.", desc: "Extend opposite arm and leg, keep hips level." }
+            ]
+        },
+        {
+             title: "Cool-down",
+             items: [
+                 { id: 'cd_thu', name: "Static Stretches", sets: "1", reps: "Routine", type: 'mobility', val: 0, unit: '', note: "", desc: "" }
+             ]
         }
     ]
   },
   friday: {
     id: 'friday',
-    title: "Friday: Legs & Shoulders",
-    subtitle: "Focus: Unilateral legs and Handstand prep.",
+    title: "Friday: Full Body & Calisthenics",
+    subtitle: "Foundation for advanced moves.",
     sections: [
-      {
-        title: "Warmup",
-        items: [
-          { id: 'e0', name: "Wrist Warmup Routine", sets: "1", reps: "2 min", type: 'mobility', val: 2, unit: 'min', note: "Crucial for handstands.", desc: "Circles, waves, and gentle stretching on hands and knees." },
-          { id: 'e1', name: "Rower", sets: "1", reps: "5 min", type: 'cardio', val: 5, unit: 'min', note: "Steady pace.", desc: "Warm up the whole body." }
-        ]
-      },
-      {
-        title: "Strength",
-        items: [
-          { id: 'e2', name: "Step-Ups", sets: "3", reps: "10/leg", type: 'strength', val: 0, unit: 'lbs', note: "Fix leg weakness.", desc: "Use a sturdy chair or bench. Drive through the heel. Control the way down." },
-          { id: 'e3', name: "Gym Monster Overhead Press", sets: "3", reps: "10 reps", type: 'strength', val: 10, unit: 'lbs', note: "Kneeling is safer.", desc: "Kneel on floor. Press cables overhead. Keep core tight (don't arch)." },
-          { id: 'ex_pike', name: "Pike Static Hold", sets: "3", reps: "20 sec", type: 'strength', val: 20, unit: 'sec', note: "Handstand prep.", desc: "Pushup position. Walk feet in to make a V shape. Hold." },
-          { id: 'e4', name: "Side Planks", sets: "3", reps: "30s/side", type: 'core', val: 30, unit: 'sec', note: "Obliques.", desc: "Elbow on floor. Lift hips high." }
-        ]
-      }
+        {
+            title: "Warmup",
+            items: [
+                { id: 'w_fri', name: "Rower/Elliptical", sets: "1", reps: "5 min", type: 'cardio', val: 5, unit: 'min', note: "", desc: "" },
+                { id: 'w_dyn3', name: "Dynamic Stretches", sets: "1", reps: "Routine", type: 'mobility', val: 0, unit: '', note: "", desc: "" }
+            ]
+        },
+        {
+            title: "Strength",
+            items: [
+                { id: 'f1', name: "Incline Push-ups", sets: "3", reps: "8-12 reps", type: 'strength', val: 0, unit: '', note: "Lower incline if possible.", desc: "Perfect form." },
+                { id: 'f2', name: "Assisted Pull-ups (Gym Monster)", sets: "3", reps: "5-8 reps", type: 'strength', val: 0, unit: 'lbs', note: "Controlled pull.", desc: "Slow eccentric phase. Squeeze back." },
+                { id: 'f3', name: "Australian Rows (Gym Monster)", sets: "3", reps: "10-15 reps", type: 'strength', val: 0, unit: '', note: "Set cable high.", desc: "Lie back, pull chest to bar/handles." },
+                { id: 'f4', name: "Bodyweight Lunges", sets: "3", reps: "8-10/leg", type: 'strength', val: 0, unit: '', note: "Controlled steps.", desc: "Keep torso upright." },
+                { id: 'f5', name: "Reverse Crunches", sets: "3", reps: "10-15 reps", type: 'core', val: 0, unit: '', note: "Gentle.", desc: "Lift hips off floor, knees to chest. No momentum." }
+            ]
+        },
+        {
+             title: "Cool-down",
+             items: [
+                 { id: 'cd_fri', name: "Static Stretches", sets: "1", reps: "Routine", type: 'mobility', val: 0, unit: '', note: "", desc: "" }
+             ]
+        }
     ]
   },
   saturday: {
     id: 'saturday',
-    title: "Saturday: Flexibility Challenge",
-    subtitle: "Working towards the splits.",
+    title: "Saturday: Active Recovery & Deep Stretch",
+    subtitle: "Targeting splits goals.",
     sections: [
         {
-            title: "Deep Stretch",
+            title: "Cardio",
             items: [
-                { id: 'f1', name: "Couch Stretch", sets: "2", reps: "90s/side", type: 'mobility', val: 90, unit: 'sec', note: "Breathe through it.", desc: "Hip flexors." },
-                { id: 'f2', name: "Seated Forward Fold", sets: "2", reps: "2 min", type: 'mobility', val: 2, unit: 'min', note: "Touch those toes!", desc: "Legs straight. Reach forward. Relax neck." }
+                { id: 's1', name: "Elliptical or Rower", sets: "1", reps: "30-45 min", type: 'cardio', val: 45, unit: 'min', note: "Moderate pace.", desc: "" }
+            ]
+        },
+        {
+            title: "Deep Flexibility",
+            items: [
+                { id: 's2', name: "Cat-Cow Stretch", sets: "1", reps: "10 reps", type: 'mobility', val: 0, unit: '', note: "Warmup spine.", desc: "" },
+                { id: 's3', name: "Kneeling Hip Flexor Stretch", sets: "2", reps: "45-90 sec/side", type: 'mobility', val: 90, unit: 'sec', note: "Deep hold.", desc: "" },
+                { id: 's4', name: "Lying Hamstring Stretch", sets: "2", reps: "45-90 sec/side", type: 'mobility', val: 90, unit: 'sec', note: "Deep hold.", desc: "" },
+                { id: 's5', name: "Pigeon Pose", sets: "2", reps: "45-90 sec/side", type: 'mobility', val: 90, unit: 'sec', note: "Deep hold.", desc: "" },
+                { id: 's6', name: "Frog Pose", sets: "2", reps: "45-90 sec", type: 'mobility', val: 90, unit: 'sec', note: "Inner thighs.", desc: "Go gently." },
+                { id: 's7', name: "Butterfly Stretch", sets: "2", reps: "45-90 sec", type: 'mobility', val: 90, unit: 'sec', note: "Push knees to floor.", desc: "" },
+                { id: 's8', name: "Child's Pose", sets: "1", reps: "2 min", type: 'mobility', val: 2, unit: 'min', note: "Recover.", desc: "" }
             ]
         }
     ]
   },
   sunday: {
     id: 'sunday',
-    title: "Sunday: Active Recovery",
-    subtitle: "Rest, stretch, or add ad-hoc work.",
+    title: "Sunday: Rest",
+    subtitle: "Complete rest or light walk.",
     sections: []
   }
 };

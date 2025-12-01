@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Dumbbell, 
@@ -19,7 +20,7 @@ import {
 import confetti from 'canvas-confetti';
 
 import { SAFE_ALTERNATIVES, INITIAL_PLAN, SKILL_TREES, SPEEDIANCE_LIBRARY } from './constants';
-import { Plan, DayPlan, NutritionLog, BodyStats, HistoryEntry, NutritionHistoryEntry, UserData } from './types';
+import { Plan, DayPlan, NutritionLog, BodyStats, HistoryEntry, NutritionHistoryEntry, UserData, Exercise } from './types';
 import { storageService } from './services/storage';
 import { StatCard } from './components/StatCard';
 import { SkillCard } from './components/SkillCard';
@@ -27,6 +28,7 @@ import WorkoutView from './components/WorkoutView';
 import { AiCoach } from './components/AiCoach';
 import { HistoryView } from './components/HistoryView';
 import { CheckInModal } from './components/CheckInModal';
+import { FuelModal } from './components/FuelModal';
 import { AdminView } from './components/AdminView';
 
 const normalizePlan = (dataPlan: any): Plan => {
@@ -84,6 +86,7 @@ export default function App() {
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({});
   
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showFuelModal, setShowFuelModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -187,12 +190,48 @@ export default function App() {
     storageService.saveUserData({ actuals: newActuals });
   };
 
-  const saveNutrition = (dayKey: string, field: string, value: string) => {
-    const dayLog = nutritionLogs[dayKey] || {};
-    const newDayLog = { ...dayLog, [field]: value };
-    const newNutritionLogs = { ...nutritionLogs, [dayKey]: newDayLog };
-    setNutritionLogs(newNutritionLogs);
-    storageService.saveUserData({ nutrition: newNutritionLogs });
+  const handleLogFuel = (date: string, data: NutritionLog) => {
+    // 1. Check if date corresponds to a day in the current week to update weekly view
+    if (weekStartDate) {
+       const start = new Date(weekStartDate);
+       const entryDate = new Date(date);
+       // Reset hours for comparison
+       start.setHours(0,0,0,0);
+       entryDate.setHours(0,0,0,0);
+       
+       const diffTime = entryDate.getTime() - start.getTime();
+       const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+       
+       if (diffDays >= 0 && diffDays <= 6) {
+           const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+           const dayKey = days[diffDays];
+           const newNutritionLogs = { ...nutritionLogs, [dayKey]: data };
+           setNutritionLogs(newNutritionLogs);
+           storageService.saveUserData({ nutrition: newNutritionLogs });
+       }
+    }
+
+    // 2. Always update long-term history
+    // Check if entry for this date exists
+    const existingIndex = nutritionHistory.findIndex(h => h.date === date);
+    let newHistory = [...nutritionHistory];
+    
+    const entry: NutritionHistoryEntry = {
+        date: date,
+        protein: parseInt(data.protein || '0') || 0,
+        calories: parseInt(data.calories || '0') || 0,
+        fat: parseInt(data.fat || '0') || 0,
+        carbs: parseInt(data.carbs || '0') || 0
+    };
+
+    if (existingIndex >= 0) {
+        newHistory[existingIndex] = entry;
+    } else {
+        newHistory.push(entry);
+    }
+    
+    setNutritionHistory(newHistory);
+    storageService.saveUserData({ nutritionHistory: newHistory });
   };
 
   const saveBodyStats = (dateOverride?: string) => {
@@ -378,14 +417,20 @@ export default function App() {
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     days.forEach((day, idx) => {
         const log = nutritionLogs[day];
-        if (log && (log.protein || log.calories)) {
+        if (log && (log.protein || log.calories || log.fat || log.carbs)) {
             const d = new Date(currentWeekStart);
             d.setDate(currentWeekStart.getDate() + idx);
-            newNutriHistory.push({
-                date: d.toISOString().split('T')[0],
-                protein: parseInt(log.protein || '0') || 0,
-                calories: parseInt(log.calories || '0') || 0
-            });
+            // Check if already saved today to avoid dupe in same session if multiple generations
+            const dateStr = d.toISOString().split('T')[0];
+            if (!newNutriHistory.find(n => n.date === dateStr)) {
+                 newNutriHistory.push({
+                    date: dateStr,
+                    protein: parseInt(log.protein || '0') || 0,
+                    calories: parseInt(log.calories || '0') || 0,
+                    fat: parseInt(log.fat || '0') || 0,
+                    carbs: parseInt(log.carbs || '0') || 0
+                });
+            }
         }
     });
 
@@ -447,6 +492,63 @@ export default function App() {
       storageService.saveUserData({ masterExerciseList: updated });
   };
 
+  const handleCompleteRestDay = (dayKey: string) => {
+    if (!plan) return;
+    const newPlan = JSON.parse(JSON.stringify(plan));
+    const day = newPlan[dayKey];
+    
+    let statusSection = day.sections.find((s: any) => s.title === "Status");
+    if (!statusSection) {
+        statusSection = { title: "Status", items: [] };
+        day.sections.push(statusSection);
+    }
+    
+    // Check if already completed to avoid duplicates
+    const existing = statusSection.items.find((i: any) => i.name === "Rest Day / Active Recovery");
+    
+    if (existing) {
+         if (!completedWorkouts.includes(existing.id)) {
+             const newCompleted = [...completedWorkouts, existing.id];
+             setCompletedWorkouts(newCompleted);
+             storageService.saveUserData({ completed: newCompleted });
+             confetti({
+                particleCount: 200,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#3b82f6', '#10b981', '#f59e0b']
+             });
+         }
+         return;
+    }
+
+    const restItem: Exercise = {
+        id: `rest_${Date.now()}`,
+        name: "Rest Day / Active Recovery",
+        sets: "1",
+        reps: "1",
+        type: 'bodyweight',
+        val: 0,
+        unit: '',
+        note: "Completed",
+        desc: "Day marked as complete."
+    };
+
+    statusSection.items.push(restItem);
+    setPlan(newPlan);
+    
+    const newCompleted = [...completedWorkouts, restItem.id];
+    setCompletedWorkouts(newCompleted);
+    
+    storageService.saveUserData({ plan: newPlan, completed: newCompleted });
+    
+    confetti({
+        particleCount: 200,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#3b82f6', '#10b981', '#f59e0b']
+    });
+  };
+
   if (loading || !plan) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -456,7 +558,6 @@ export default function App() {
   }
 
   const activeWorkoutData = plan[activeTab];
-  const activeNutritionData = nutritionLogs[activeTab] || {};
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-safe">
@@ -627,7 +728,6 @@ export default function App() {
             dayKey={activeTab}
             dateLabel={getFormattedDate(activeTab) || ''}
             data={activeWorkoutData}
-            nutrition={activeNutritionData}
             completed={completedWorkouts}
             intensities={intensities}
             actuals={actuals}
@@ -638,8 +738,8 @@ export default function App() {
             setActual={saveActual}
             onAddExercise={addAdHocExercise}
             onSwap={(sectionIdx, itemIdx, targetVariant) => swapExercise(activeTab, sectionIdx, itemIdx, targetVariant)}
-            onSaveNutrition={(field, val) => saveNutrition(activeTab, field, val)}
             onBack={() => setActiveTab('schedule')}
+            onCompleteDay={() => handleCompleteRestDay(activeTab)}
           />
         )}
 
@@ -666,13 +766,6 @@ export default function App() {
         {/* PROGRESS (SKILLS) VIEW */}
         {activeTab === 'progress' && (
              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 pb-20">
-                 <div className="glass-card p-6 rounded-3xl">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <Trophy className="w-5 h-5 text-amber-400" />
-                        Skill Mastery
-                    </h2>
-                    <p className="text-sm text-slate-400 mt-1">Unlock new capabilities.</p>
-                 </div>
                  <div className="space-y-4">
                     {SKILL_TREES.map(tree => (
                         <SkillCard 
@@ -727,8 +820,8 @@ export default function App() {
             </button>
             
             <button 
-                onClick={() => setActiveTab('schedule')} // Nutrition is inside daily view now, or we can make a dedicated tab. For now pointing to Home as "Fuel" is daily. 
-                className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${activeTab === 'fuel' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}
+                onClick={() => setShowFuelModal(true)} 
+                className="flex flex-col items-center justify-center w-full h-full gap-1 transition-colors text-slate-500 hover:text-emerald-400"
             >
                 <Utensils className="w-5 h-5" />
                 <span className="text-[10px] font-bold">Fuel</span>
@@ -746,6 +839,14 @@ export default function App() {
             onUpdateBodyStats={(s) => setBodyStats(s)}
             onSaveBodyStats={saveBodyStats}
             onClose={() => setShowCheckIn(false)} 
+        />
+      )}
+
+      {/* Fuel Log Modal */}
+      {showFuelModal && (
+        <FuelModal 
+            onClose={() => setShowFuelModal(false)}
+            onSave={handleLogFuel}
         />
       )}
 

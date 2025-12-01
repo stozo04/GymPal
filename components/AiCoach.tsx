@@ -111,7 +111,7 @@ export const AiCoach: React.FC = () => {
               <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-150"></span>
             </div>
           </div>
-        )}
+        ))}
         <div ref={messagesEndRef} />
       </div>
 

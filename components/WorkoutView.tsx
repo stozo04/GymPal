@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { 
   CheckCircle2, 
@@ -7,7 +8,6 @@ import {
   X, 
   History, 
   Shuffle, 
-  Flame,
   ShieldCheck,
   Search,
   ChevronDown,
@@ -22,7 +22,6 @@ interface WorkoutViewProps {
   dayKey: string;
   dateLabel: string;
   data: DayPlan;
-  nutrition: NutritionLog;
   completed: string[];
   intensities: Record<string, number>;
   actuals: Record<string, string>;
@@ -33,8 +32,8 @@ interface WorkoutViewProps {
   setActual: (id: string, val: string) => void;
   onAddExercise: (dayKey: string, ex: any) => void;
   onSwap: (sectionIdx: number, itemIdx: number, targetVariant?: any) => void;
-  onSaveNutrition: (field: string, val: string) => void;
   onBack: () => void;
+  onCompleteDay: () => void;
 }
 
 interface SwapConfig {
@@ -45,8 +44,8 @@ interface SwapConfig {
 }
 
 export default function WorkoutView({ 
-  dayKey, dateLabel, data, nutrition, completed, intensities, actuals, lastWeekActuals, masterExerciseList,
-  toggle, setIntensity, setActual, onAddExercise, onSaveNutrition, onSwap, onBack
+  dayKey, dateLabel, data, completed, intensities, actuals, lastWeekActuals, masterExerciseList,
+  toggle, setIntensity, setActual, onAddExercise, onSwap, onBack, onCompleteDay
 }: WorkoutViewProps) {
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -165,10 +164,23 @@ export default function WorkoutView({
 
       {data.sections.length === 0 && (
         <div className="text-center py-12 bg-slate-900/30 rounded-3xl border border-slate-800 border-dashed">
-          <p className="text-slate-500 mb-4 text-sm">No scheduled exercises.</p>
-          <button onClick={() => setIsAdding(true)} className="px-5 py-2.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 rounded-xl text-sm font-bold transition-colors">
-            + Add Exercise
-          </button>
+          <p className="text-slate-500 mb-6 text-sm">No scheduled exercises.</p>
+          <div className="flex flex-col gap-3 px-10 max-w-xs mx-auto">
+             <button 
+                onClick={onCompleteDay} 
+                className="w-full px-5 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2"
+             >
+                <CheckCircle2 className="w-5 h-5" />
+                Mark Day Complete
+             </button>
+             <button 
+                onClick={() => setIsAdding(true)} 
+                className="w-full px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+             >
+                <Plus className="w-5 h-5" />
+                Add Exercise
+             </button>
+          </div>
         </div>
       )}
 
@@ -403,50 +415,6 @@ export default function WorkoutView({
           </div>
         </div>
       )}
-
-      {/* DAILY NUTRITION LOG SECTION */}
-      <div className="glass-card rounded-3xl overflow-hidden mt-8">
-         <div className="bg-emerald-500/10 px-5 py-4 border-b border-emerald-500/20 flex justify-between items-center">
-            <h3 className="font-bold text-emerald-100 flex items-center gap-2 text-sm">
-              <Flame className="w-4 h-4 text-emerald-400" />
-              Daily Fuel Log
-            </h3>
-            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-full uppercase font-bold tracking-wider">Target: 170g Protein</span>
-         </div>
-         <div className="p-5 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-               <div>
-                  <label className="text-[10px] text-slate-400 uppercase font-bold block mb-2 tracking-wider">Protein (g)</label>
-                  <input 
-                    type="number" 
-                    placeholder="0" 
-                    className="w-full bg-black/20 border border-white/5 rounded-xl p-3 text-white focus:border-emerald-500/50 outline-none text-lg font-mono font-bold"
-                    value={nutrition.protein || ''}
-                    onChange={(e) => onSaveNutrition('protein', e.target.value)}
-                  />
-               </div>
-               <div>
-                  <label className="text-[10px] text-slate-400 uppercase font-bold block mb-2 tracking-wider">Calories</label>
-                  <input 
-                    type="number" 
-                    placeholder="0" 
-                    className="w-full bg-black/20 border border-white/5 rounded-xl p-3 text-white focus:border-emerald-500/50 outline-none text-lg font-mono font-bold"
-                    value={nutrition.calories || ''}
-                    onChange={(e) => onSaveNutrition('calories', e.target.value)}
-                  />
-               </div>
-            </div>
-            <div>
-               <label className="text-[10px] text-slate-400 uppercase font-bold block mb-2 tracking-wider">Notes</label>
-               <textarea 
-                  placeholder="Details..." 
-                  className="w-full bg-black/20 border border-white/5 rounded-xl p-3 text-white focus:border-emerald-500/50 outline-none text-sm h-20 resize-none"
-                  value={nutrition.notes || ''}
-                  onChange={(e) => onSaveNutrition('notes', e.target.value)}
-               />
-            </div>
-         </div>
-      </div>
     </div>
   );
 }

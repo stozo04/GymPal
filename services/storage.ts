@@ -1,9 +1,10 @@
+
 import { UserData } from "../types";
 
 // A robust LocalStorage wrapper that mimics the Firestore behavior from the user's provided code.
 // This allows the app to function immediately without backend configuration.
 
-const STORAGE_KEY = 'iron_architect_data_v1';
+const STORAGE_KEY = 'gympal_data_v3';
 
 export const storageService = {
   getUserData: (): UserData | null => {
