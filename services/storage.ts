@@ -37,6 +37,19 @@ const getDb = () => {
 };
 
 export const storageService = {
+  // Fetch current data synchronously (one-time read)
+  getData: async (): Promise<UserData | null> => {
+    const db = getDb();
+    try {
+      const ref = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOC);
+      const snapshot = await getDoc(ref);
+      return snapshot.exists() ? (snapshot.data() as UserData) : null;
+    } catch (error) {
+      console.error("Firestore read error", error);
+      return null;
+    }
+  },
+
   // Note: This app uses real-time listeners (subscribe) for all data
   // No direct read is needed since subscribe handles initial hydration
   getUserData: (): UserData | null => {

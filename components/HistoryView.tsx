@@ -340,7 +340,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             )}
 
         {activeTab === 'coach' && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-2">
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-2 max-h-[600px] overflow-y-auto pr-2">
             {chatHistory.length === 0 ? (
               <div className="text-center py-16 bg-slate-900/40 rounded-3xl border border-white/5 border-dashed">
                 <MessageCircle className="w-12 h-12 text-blue-400/30 mx-auto mb-4" />

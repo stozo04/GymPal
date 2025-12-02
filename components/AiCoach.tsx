@@ -55,15 +55,49 @@ export const AiCoach: React.FC<AiCoachProps> = ({ onMessagesUpdate }) => {
     }
   }, [messages, onMessagesUpdate]);
 
-  // Subscribe to get week data for context
+  // Load chat history from Firestore on mount
   useEffect(() => {
-    const unsubscribe = storageService.subscribe((data) => {
-      if (data) {
-        weekCountRef.current = data.weekCount || 1;
-        weekStartRef.current = data.weekStartDate || null;
+    const loadChatHistory = async () => {
+      try {
+        const unsubscribe = storageService.subscribe((data) => {
+          if (data) {
+            weekCountRef.current = data.weekCount || 1;
+            weekStartRef.current = data.weekStartDate || null;
+
+            // Load current week's messages from chat history
+            if (data.chatHistory && data.chatHistory.length > 0) {
+              const currentWeek = data.chatHistory.find(
+                (chat: any) => chat.weekNumber === (data.weekCount || 1)
+              );
+              if (currentWeek && currentWeek.messages) {
+                // Only load if messages state is still the default greeting
+                if (messages.length === 1 && messages[0].text.includes("Ready to hit those calisthenics")) {
+                  const loadedMessages = currentWeek.messages.map((msg: any) => ({
+                    role: msg.role,
+                    text: msg.text,
+                    timestamp: msg.timestamp
+                  }));
+                  setMessages(prev => {
+                    // Filter out the default greeting if we have real messages
+                    const nonGreeting = prev.filter(m => !m.text.includes("Ready to hit those calisthenics"));
+                    return [...nonGreeting, ...loadedMessages];
+                  });
+                  console.log('[AiCoach] Loaded previous messages from this week', {
+                    weekNumber: currentWeek.weekNumber,
+                    messageCount: currentWeek.messages.length
+                  });
+                }
+              }
+            }
+          }
+        });
+        return () => unsubscribe();
+      } catch (error) {
+        console.error('[AiCoach] Failed to load chat history', error);
       }
-    });
-    return () => unsubscribe();
+    };
+
+    loadChatHistory();
   }, []);
 
   const handleSend = async () => {
@@ -107,7 +141,6 @@ export const AiCoach: React.FC<AiCoachProps> = ({ onMessagesUpdate }) => {
       const weekNum = weekCountRef.current;
       const weekStart = weekStartRef.current || new Date().toISOString();
 
-      // Create temporary chat entry for this week
       const userMessage: ChatMessage = {
         role: 'user',
         text: userMsg,
@@ -120,15 +153,40 @@ export const AiCoach: React.FC<AiCoachProps> = ({ onMessagesUpdate }) => {
         timestamp: aiTime
       };
 
-      // Store in a temporary array that App.tsx will process on week completion
-      // This maintains the messages in state for immediate UI display
-      console.log('[Chat] Messages ready for archival on week completion', {
-        weekNumber: weekNum,
-        weekStartDate: weekStart,
-        messages: [userMessage, aiMessage]
-      });
+      // Get current data from Firestore
+      const currentData = await storageService.getData();
+
+      if (currentData) {
+        let updatedChatHistory = [...(currentData.chatHistory || [])];
+
+        // Find or create entry for current week
+        let weekEntry = updatedChatHistory.find(chat => chat.weekNumber === weekNum);
+
+        if (!weekEntry) {
+          weekEntry = {
+            weekNumber: weekNum,
+            weekStartDate: weekStart,
+            messages: []
+          };
+          updatedChatHistory.push(weekEntry);
+        }
+
+        // Add messages to the week
+        weekEntry.messages = [...(weekEntry.messages || []), userMessage, aiMessage];
+
+        // Save back to Firestore
+        await storageService.saveUserData({
+          ...currentData,
+          chatHistory: updatedChatHistory
+        });
+
+        console.log('[Chat] Saved messages to Firestore', {
+          weekNumber: weekNum,
+          totalMessages: weekEntry.messages.length
+        });
+      }
     } catch (error) {
-      console.error('Failed to save chat message', error);
+      console.error('Failed to save chat message to Firestore', error);
     }
   };
 
