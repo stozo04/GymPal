@@ -1,7 +1,11 @@
 import { GoogleGenAI, Chat } from "@google/genai";
-import { UserData, ChatMessage } from "../types";
+import { UserData, ChatMessage, WeeklyChat } from "../types";
+import { analyzePatterns, formatPatternsForCoach } from "./patternAnalysis";
 
-const SYSTEM_INSTRUCTION = `
+export const generateSystemInstruction = (
+  chatHistory?: WeeklyChat[]
+): string => {
+  const baseInstruction = `
 You are 'GymPal Coach', a specialized fitness expert for a specific user.
 USER PROFILE:
 - Male, 40 years old, 5'9", 170 lbs.
@@ -45,20 +49,40 @@ Reference his workout data when available:
 - Body weight trends
 - Notable improvements or plateaus
 This allows trend analysis and personalized adjustments over months.
-`;
+
+COACH LEARNING FROM PATTERNS:
+Analyze past conversations for patterns:
+- Days when pain/discomfort is mentioned most often
+- Exercises that cause issues or struggles
+- Nutrition/sleep correlation with performance and recovery
+- Days with better or worse performance
+Use these insights to provide genuinely personalized advice like:
+"I notice you mention back tightness every Friday. This likely correlates with high-volume Monday/Tuesday workouts. Try: lighter Fridays, extra mobility focus on Thursday/Friday."
+When patterns are detected, reference them naturally in your responses to show you're learning and truly personalizing recommendations.`;
+
+  // Add pattern analysis if 4+ weeks of history available
+  if (chatHistory && chatHistory.length >= 4) {
+    const { patterns } = analyzePatterns(chatHistory);
+    const patternInstruction = formatPatternsForCoach(patterns);
+    return baseInstruction + patternInstruction;
+  }
+
+  return baseInstruction;
+};
 
 export const geminiService = {
-  createChatSession: (): Chat | null => {
+  createChatSession: (chatHistory?: WeeklyChat[]): Chat | null => {
     if (!process.env.VITE_GOOGLE_GENAI_API_KEY) return null;
 
     try {
       const ai = new GoogleGenAI({
         apiKey: process.env.VITE_GOOGLE_GENAI_API_KEY,
       });
+      const systemInstruction = generateSystemInstruction(chatHistory);
       const chat = ai.chats.create({
         model: "gemini-2.5-flash",
         config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
+          systemInstruction,
         },
       });
       return chat;

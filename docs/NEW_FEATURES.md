@@ -112,23 +112,7 @@ interface Streak {
 // Milestones: 2 weeks (bronze), 4 weeks (silver), 8 weeks (gold), 16 weeks (platinum)
 ```
 
----
 
-### 8. **Body Metrics Trend Graphs (Weight & Waist)**
-**Why:** Visual proof of body composition changes beats raw numbers  
-**Implementation:** Extend NutritionChart.tsx logic to BodyStats  
-**Time:** 1.5 hours  
-**Value:** 8/10 - Motivation during plateaus
-
-```typescript
-// Example graph:
-// X-axis: Week 1 → Week 12
-// Y-axis: Weight (170 → 165)
-// Line graph with trend line
-// Show: "↓ 5 lbs in 3 months" + slope angle
-```
-
----
 
 ### 9. **Deload Week Auto-Detection**
 **Why:** Your system suggests Week 6 deloads, but coach should recommend intelligently  
@@ -146,27 +130,6 @@ const shouldDeload = () => {
   
   return avgRPE > 7.5 || injuryMentions > 2;
 };
-```
-
----
-
-### 10. **Coach Learning from Your Patterns**
-**Why:** "I notice you mention lower back tightness every Friday—here's why & how to prevent it"  
-**Implementation:** Coach analyzes 4+ weeks of chat data for patterns  
-**Time:** 3 hours  
-**Value:** 9/10 - Personalization that actually works
-
-```typescript
-// New system instruction addition:
-// "Analyze past 4 weeks of conversations for patterns:
-//  - Days when pain mentioned
-//  - Exercises causing issues
-//  - Nutrition/sleep correlation with performance
-//  - Provide pattern-specific advice"
-
-// Example: "You mentioned back tightness 8x on Fridays. 
-// This likely correlates with high-volume Monday/Tuesday. 
-// Try: lighter Fridays, mobility focus."
 ```
 
 ---

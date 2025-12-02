@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Bot, Sparkles } from 'lucide-react';
 import { geminiService } from '../services/gemini';
 import { storageService } from '../services/storage';
+import { analyzePatterns } from '../services/patternAnalysis';
 import { Chat } from "@google/genai";
 import { ChatMessage } from '../types';
 
@@ -28,13 +29,32 @@ export const AiCoach: React.FC<AiCoachProps> = ({ onMessagesUpdate }) => {
   const weekStartRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const session = geminiService.createChatSession();
-    if (session) {
-      setChatSession(session);
-      console.log('[AiCoach] Chat session initialized successfully');
-    } else {
-      console.error('[AiCoach] Failed to create chat session - check API key');
-    }
+    const initializeChatSession = async () => {
+      try {
+        // Get current data to access chat history
+        const currentData = await import('../services/storage').then(m => m.storageService.getData());
+        const chatHistory = currentData?.chatHistory;
+
+        const session = geminiService.createChatSession(chatHistory);
+        if (session) {
+          setChatSession(session);
+          console.log('[AiCoach] Chat session initialized successfully', {
+            hasPatternHistory: chatHistory && chatHistory.length >= 4
+          });
+        } else {
+          console.error('[AiCoach] Failed to create chat session - check API key');
+        }
+      } catch (error) {
+        console.error('[AiCoach] Error initializing chat session:', error);
+        // Fallback to session without pattern history
+        const session = geminiService.createChatSession();
+        if (session) {
+          setChatSession(session);
+        }
+      }
+    };
+
+    initializeChatSession();
   }, []);
 
   useEffect(() => {
@@ -196,6 +216,30 @@ export const AiCoach: React.FC<AiCoachProps> = ({ onMessagesUpdate }) => {
       handleSend();
     }
   };
+
+  // Debug: Log pattern analysis when available (for development)
+  useEffect(() => {
+    const logPatternAnalysis = async () => {
+      try {
+        const currentData = await storageService.getData();
+        if (currentData?.chatHistory && currentData.chatHistory.length >= 4) {
+          const { patterns, summary } = analyzePatterns(currentData.chatHistory);
+          console.log('[PatternAnalysis] Detected patterns:', {
+            patternCount: patterns.length,
+            summary,
+            patterns
+          });
+        }
+      } catch (error) {
+        console.log('[PatternAnalysis] Not enough data yet');
+      }
+    };
+
+    // Log every 10 messages or on component mount
+    if (messages.length % 10 === 0 || messages.length === 1) {
+      logPatternAnalysis();
+    }
+  }, [messages.length]);
 
   if (!isOpen) {
     return (
