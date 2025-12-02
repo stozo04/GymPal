@@ -3,22 +3,52 @@ import { Play, Pause, RotateCcw, Timer as TimerIcon } from 'lucide-react';
 
 interface TimerProps {
   initialSeconds: number;
-  label?: string;
 }
 
 export const Timer: React.FC<TimerProps> = ({ initialSeconds, label }) => {
   const [seconds, setSeconds] = useState(initialSeconds);
   const [isActive, setIsActive] = useState(false);
   const intervalRef = useRef<number | null>(null);
+  const hasPlayedRef = useRef(false);
+
+  const playTimerAlert = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const now = audioContext.currentTime;
+
+      // Create a beep sound using oscillator
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      // Set frequency and duration
+      oscillator.frequency.value = 800; // Hz
+      oscillator.type = 'sine';
+
+      // Create envelope: quick attack, quick release
+      gainNode.gain.setValueAtTime(0.3, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+      oscillator.start(now);
+      oscillator.stop(now + 0.5);
+    } catch (e) {
+      console.warn('Timer alert sound failed:', e);
+    }
+  };
 
   useEffect(() => {
     if (isActive && seconds > 0) {
       intervalRef.current = window.setInterval(() => {
         setSeconds((s) => s - 1);
       }, 1000);
-    } else if (seconds === 0) {
+      hasPlayedRef.current = false;
+    } else if (seconds === 0 && !hasPlayedRef.current) {
       setIsActive(false);
       if (intervalRef.current) clearInterval(intervalRef.current);
+      playTimerAlert();
+      hasPlayedRef.current = true;
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);

@@ -37,6 +37,8 @@ const getDb = () => {
 };
 
 export const storageService = {
+  // Note: This app uses real-time listeners (subscribe) for all data
+  // No direct read is needed since subscribe handles initial hydration
   getUserData: (): UserData | null => {
     return null;
   },
@@ -53,28 +55,40 @@ export const storageService = {
   },
 
   subscribe: (callback: (data: UserData | null) => void) => {
-    const db = getDb();
+    try {
+      const db = getDb();
 
-    // Firestore realtime listener
-    const ref = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOC);
+      // Firestore realtime listener
+      const ref = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOC);
 
-    // Also fetch once to hydrate local cache if it exists
-    getDoc(ref).then(snapshot => {
-      if (snapshot.exists()) {
-        const data = snapshot.data() as UserData;
-        callback(data);
-      }
-    }).catch(err => console.error("Firestore initial read error", err));
+      // Fetch once to hydrate initial state
+      getDoc(ref)
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data() as UserData;
+            callback(data);
+          }
+        })
+        .catch((err) => console.error("Firestore initial read error", err));
 
-    const unsub = onSnapshot(ref, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data() as UserData;
-        callback(data);
-      } else {
-        callback(null);
-      }
-    }, (error) => console.error("Firestore subscribe error", error));
+      // Set up real-time listener for updates
+      const unsub = onSnapshot(
+        ref,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data() as UserData;
+            callback(data);
+          } else {
+            callback(null);
+          }
+        },
+        (error) => console.error("Firestore subscribe error", error)
+      );
 
-    return unsub;
-  }
+      return unsub;
+    } catch (err) {
+      console.error("Firestore listener setup failed", err);
+      return () => {}; // Return no-op unsubscribe function
+    }
+  },
 };

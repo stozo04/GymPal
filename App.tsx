@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Dumbbell, 
   Activity, 
@@ -15,13 +15,15 @@ import {
   ChevronRight,
   Settings,
   MoreVertical,
-  ChevronDown
+  ChevronDown,
+  X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 import { SAFE_ALTERNATIVES, INITIAL_PLAN, SKILL_TREES, SPEEDIANCE_LIBRARY } from './constants';
-import { Plan, DayPlan, NutritionLog, BodyStats, HistoryEntry, NutritionHistoryEntry, UserData, Exercise } from './types';
+import { Plan, DayPlan, NutritionLog, BodyStats, HistoryEntry, NutritionHistoryEntry, UserData, Exercise, WeeklyChat, ChatMessage } from './types';
 import { storageService } from './services/storage';
+import { geminiService } from './services/gemini';
 import { StatCard } from './components/StatCard';
 import { SkillCard } from './components/SkillCard';
 import WorkoutView from './components/WorkoutView';
@@ -83,13 +85,20 @@ export default function App() {
   const [masterExerciseList, setMasterExerciseList] = useState<string[]>([]);
   const [exerciseHistory, setExerciseHistory] = useState<Record<string, HistoryEntry[]>>({});
   const [nutritionHistory, setNutritionHistory] = useState<NutritionHistoryEntry[]>([]);
+  const [chatHistory, setChatHistory] = useState<WeeklyChat[]>([]);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({});
   const [skipReasons, setSkipReasons] = useState<Record<string, string>>({});
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showFuelModal, setShowFuelModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showSkipModal, setShowSkipModal] = useState(false);
+  const [skipReason, setSkipReason] = useState('');
+  const [pendingSkipDay, setPendingSkipDay] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Ref to capture current week's chat messages from AiCoach component
+  const currentWeekChatMessagesRef = useRef<ChatMessage[]>([]);
 
   useEffect(() => {
     if (!toast) return;
@@ -111,6 +120,7 @@ export default function App() {
         setExerciseHistory(data.exerciseHistory || {});
         setNutritionHistory(data.nutritionHistory || []);
         setSkipReasons(data.skipReasons || {});
+        setChatHistory(data.chatHistory || []);
         
         // Ensure skill levels are initialized
         const initialSkills: Record<string, number> = {};
@@ -204,18 +214,29 @@ export default function App() {
   };
 
   const skipDay = (dayKey: string) => {
-    const reason = prompt("Why are you skipping this workout?");
-    if (!reason || !reason.trim()) {
+    setPendingSkipDay(dayKey);
+    setSkipReason('');
+    setShowSkipModal(true);
+  };
+
+  const handleConfirmSkip = () => {
+    if (!pendingSkipDay || !skipReason.trim()) {
       setToast({ type: 'error', message: 'Skip reason required' });
       return;
     }
+    const dayKey = pendingSkipDay;
     const newCompleted = completedWorkouts.includes(dayKey) ? completedWorkouts : [...completedWorkouts, dayKey];
     const key = `${weekStartDate || 'unknown'}:${dayKey}`;
-    const newSkips = { ...skipReasons, [key]: reason.trim() };
+    const newSkips = { ...skipReasons, [key]: skipReason.trim() };
     setCompletedWorkouts(newCompleted);
     setSkipReasons(newSkips);
     storageService.saveUserData({ completed: newCompleted, skipReasons: newSkips })
-      .then(() => setToast({ type: 'success', message: 'Workout skipped' }))
+      .then(() => {
+        setToast({ type: 'success', message: 'Workout skipped' });
+        setShowSkipModal(false);
+        setSkipReason('');
+        setPendingSkipDay(null);
+      })
       .catch(() => setToast({ type: 'error', message: 'Failed to skip workout' }));
   };
 
@@ -373,9 +394,14 @@ export default function App() {
     storageService.saveUserData({ plan: newPlan });
   };
 
-  const calculateProgressionAndRotation = (currentPlan: Plan, intensities: Record<string, number>) => {
+  const calculateProgressionAndRotation = (currentPlan: Plan, intensities: Record<string, number>, chatContext?: string) => {
     let changes: string[] = [];
     const newPlan = JSON.parse(JSON.stringify(currentPlan));
+
+    // Log chat context if available
+    if (chatContext) {
+      console.log('[Progression] Using chat context:', chatContext);
+    }
 
     const deloadStrength = (item: any) => {
       const currentReps = parseInt(item.reps) || 0;
@@ -452,13 +478,34 @@ export default function App() {
 
   const generateNextWeek = async () => {
     if (!plan) return;
-    const { newPlan, changes } = calculateProgressionAndRotation(plan, intensities);
+
+    // 0. Capture and analyze current week's chat for insights
+    let chatSummary = '';
+    let weekChatMessages: ChatMessage[] = [];
+    try {
+      const currentMessages = currentWeekChatMessagesRef.current || [];
+      if (currentMessages.length > 0) {
+        weekChatMessages = currentMessages;
+        console.log('[Chat] Generating summary from', currentMessages.length, 'messages');
+        chatSummary = await geminiService.generateChatSummary(currentMessages, weekCount);
+        console.log('[Chat] Summary generated:', chatSummary);
+      }
+    } catch (error) {
+      console.error('[Chat] Failed to generate summary:', error);
+    }
+
+    // Call progression with chat context
+    const { newPlan, changes } = calculateProgressionAndRotation(plan, intensities, chatSummary);
 
     let confirmMsg = "Ready for Week " + (weekCount + 1) + "?";
     if (changes.length > 0) {
       confirmMsg += "\n\nAI Adjustments:\n" + changes.map(c => "• " + c).join("\n");
     } else {
       confirmMsg += "\n\nMaintained plan structure.";
+    }
+
+    if (chatSummary) {
+      confirmMsg += "\n\n📍 Coach Insight:\n" + chatSummary;
     }
 
     if (!confirm(confirmMsg)) return;
@@ -518,6 +565,25 @@ export default function App() {
     });
     const updatedMaster = Array.from(newMasterList).sort();
 
+    // 4. Archive Chat History from current week
+    let updatedChatHistory = [...chatHistory];
+    try {
+      if (weekChatMessages.length > 0) {
+        const weekChatEntry: WeeklyChat = {
+          weekNumber: weekCount,
+          weekStartDate: weekStartDate || newStartDate,
+          messages: weekChatMessages,
+          summary: chatSummary || undefined
+        };
+        updatedChatHistory.push(weekChatEntry);
+        console.log('[Archive] Chat history archived for week', weekCount);
+        // Reset chat messages for new week
+        currentWeekChatMessagesRef.current = [];
+      }
+    } catch (error) {
+      console.error('[Archive] Chat archival error:', error);
+    }
+
         storageService.saveUserData({ 
             plan: newPlan,
             completed: [],
@@ -530,18 +596,18 @@ export default function App() {
             exerciseHistory: newHistory,
             nutritionHistory: newNutriHistory,
             masterExerciseList: updatedMaster,
-            skipReasons: {}
+          skipReasons: {},
+          chatHistory: updatedChatHistory
         });
     
     // Update local state
     setExerciseHistory(newHistory);
     setNutritionHistory(newNutriHistory);
     setMasterExerciseList(updatedMaster);
+    setChatHistory(updatedChatHistory);
     
     setActiveTab('schedule');
-  };
-
-  const unlockSkill = (treeId: string, level: number) => {
+  }; const unlockSkill = (treeId: string, level: number) => {
       const newLevels = { ...skillLevels, [treeId]: level + 1 };
       setSkillLevels(newLevels);
       storageService.saveUserData({ skillLevels: newLevels });
@@ -710,6 +776,12 @@ export default function App() {
                     const totalCount = todayPlan.sections.flatMap(s => s.items).length;
                     const progress = totalCount === 0 ? 0 : (completedCount / totalCount) * 100;
                     
+              // Determine ring color based on progress
+              let ringColor = 'text-red-500';
+              if (progress >= 75) ringColor = 'text-emerald-500';
+              else if (progress >= 50) ringColor = 'text-yellow-400';
+              else if (progress >= 25) ringColor = 'text-orange-400';
+
                     return (
                         <div 
                             onClick={() => setActiveTab(todayKey)}
@@ -731,9 +803,9 @@ export default function App() {
                                         <div className="relative w-12 h-12">
                                             <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                                                 <path className="text-blue-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
-                                                <path className="text-white drop-shadow-md transition-all duration-1000 ease-out" strokeDasharray={`${progress}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+                                  <path className={`${ringColor} drop-shadow-md transition-all duration-1000 ease-out`} strokeDasharray={`${progress}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
                                             </svg>
-                                            <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">
+                                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-emerald-400">
                                                 {Math.round(progress)}%
                                             </div>
                                         </div>
@@ -836,6 +908,7 @@ export default function App() {
                 weekStartDate={weekStartDate}
                 masterExerciseList={masterExerciseList}
                 bodyStats={bodyStats}
+            chatHistory={chatHistory}
             />
         )}
 
@@ -906,7 +979,7 @@ export default function App() {
       </nav>
 
       {/* Floating AI Coach */}
-      <AiCoach />
+      <AiCoach onMessagesUpdate={(msgs) => { currentWeekChatMessagesRef.current = msgs; }} />
 
       {/* Check In Modal */}
       {showCheckIn && (
@@ -925,6 +998,43 @@ export default function App() {
                 onSave={handleLogFuel}
             />
           )}
+
+      {/* Skip Workout Modal */}
+      {showSkipModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-slate-900/90 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-white/5 flex justify-between items-center">
+              <h3 className="font-bold text-white">Why are you skipping this workout?</h3>
+              <button onClick={() => { setShowSkipModal(false); setSkipReason(''); setPendingSkipDay(null); }} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <textarea
+                value={skipReason}
+                onChange={(e) => setSkipReason(e.target.value)}
+                placeholder="E.g., Injury, too tired, busy schedule..."
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-blue-500/50 resize-none h-24"
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowSkipModal(false); setSkipReason(''); setPendingSkipDay(null); }}
+                  className="flex-1 px-4 py-3 rounded-lg border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-all font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmSkip}
+                  disabled={!skipReason.trim()}
+                  className="flex-1 px-4 py-3 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold transition-all"
+                >
+                  Skip Workout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
           {toast && (
             <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold z-50 ${

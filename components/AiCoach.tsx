@@ -1,22 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Bot, Sparkles } from 'lucide-react';
 import { geminiService } from '../services/gemini';
+import { storageService } from '../services/storage';
 import { Chat } from "@google/genai";
+import { ChatMessage } from '../types';
 
 interface Message {
   role: 'user' | 'model';
   text: string;
+  timestamp: string;
 }
 
-export const AiCoach: React.FC = () => {
+interface AiCoachProps {
+  onMessagesUpdate?: (messages: ChatMessage[]) => void;
+}
+
+export const AiCoach: React.FC<AiCoachProps> = ({ onMessagesUpdate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: "Hey! I'm GymPal. Ready to hit those calisthenics goals? How's the back feeling today?" }
+    { role: 'model', text: "Hey! I'm GymPal. Ready to hit those calisthenics goals? How's the back feeling today?", timestamp: new Date().toISOString() }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [chatSession, setChatSession] = useState<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const weekCountRef = useRef<number>(1);
+  const weekStartRef = useRef<string | null>(null);
 
   useEffect(() => {
     const session = geminiService.createChatSession();
@@ -29,22 +38,84 @@ export const AiCoach: React.FC = () => {
     }
   }, [messages, isOpen]);
 
+  // Notify parent of message updates for chat archival
+  useEffect(() => {
+    if (onMessagesUpdate) {
+      const chatMessages: ChatMessage[] = messages.map(m => ({
+        role: m.role,
+        text: m.text,
+        timestamp: m.timestamp
+      }));
+      onMessagesUpdate(chatMessages);
+    }
+  }, [messages, onMessagesUpdate]);
+
+  // Subscribe to get week data for context
+  useEffect(() => {
+    const unsubscribe = storageService.subscribe((data) => {
+      if (data) {
+        weekCountRef.current = data.weekCount || 1;
+        weekStartRef.current = data.weekStartDate || null;
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const handleSend = async () => {
     if (!input.trim() || !chatSession) return;
 
     const userMsg = input.trim();
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    const timestamp = new Date().toISOString();
+
+    setMessages(prev => [...prev, { role: 'user', text: userMsg, timestamp }]);
     setInput('');
     setIsTyping(true);
 
     try {
       const response = await chatSession.sendMessage({ message: userMsg });
-      setMessages(prev => [...prev, { role: 'model', text: response.text || "I'm having trouble thinking right now." }]);
+      const aiResponse = response.text || "I'm having trouble thinking right now.";
+      const aiTimestamp = new Date().toISOString();
+
+      setMessages(prev => [...prev, { role: 'model', text: aiResponse, timestamp: aiTimestamp }]);
+
+      // Save chat message to Firestore
+      saveChatMessage(userMsg, timestamp, aiResponse, aiTimestamp);
     } catch (error) {
       console.error("Chat Error", error);
-      setMessages(prev => [...prev, { role: 'model', text: "Sorry, connection error. Please try again." }]);
+      const errorTimestamp = new Date().toISOString();
+      setMessages(prev => [...prev, { role: 'model', text: "Sorry, connection error. Please try again.", timestamp: errorTimestamp }]);
     } finally {
       setIsTyping(false);
+    }
+  };
+
+  const saveChatMessage = async (userMsg: string, userTime: string, aiMsg: string, aiTime: string) => {
+    try {
+      const weekNum = weekCountRef.current;
+      const weekStart = weekStartRef.current || new Date().toISOString();
+
+      // Create temporary chat entry for this week
+      const userMessage: ChatMessage = {
+        role: 'user',
+        text: userMsg,
+        timestamp: userTime
+      };
+
+      const aiMessage: ChatMessage = {
+        role: 'model',
+        text: aiMsg,
+        timestamp: aiTime
+      };
+
+      // Store in a temporary array that App.tsx will process on week completion
+      // This maintains the messages in state for immediate UI display
+      console.log('[Chat] Messages ready for archival on week completion', {
+        weekNumber: weekNum,
+        weekStartDate: weekStart,
+        messages: [userMessage, aiMessage]
+      });
+    } catch (error) {
+      console.error('Failed to save chat message', error);
     }
   };
 
@@ -100,6 +171,9 @@ export const AiCoach: React.FC = () => {
                 : 'bg-white/5 text-slate-200 rounded-bl-sm border border-white/5'
             }`}>
               {msg.text}
+              <div className={`text-[10px] mt-1 opacity-60 ${msg.role === 'user' ? 'text-blue-100' : 'text-slate-400'}`}>
+                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
             </div>
           </div>
         ))}

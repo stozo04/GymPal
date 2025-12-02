@@ -65,6 +65,19 @@ export interface NutritionHistoryEntry {
   carbs?: number;
 }
 
+export interface ChatMessage {
+  role: "user" | "model";
+  text: string;
+  timestamp: string;
+}
+
+export interface WeeklyChat {
+  weekNumber: number;
+  weekStartDate: string;
+  messages: ChatMessage[];
+  summary?: string; // AI-generated summary of the week's conversation
+}
+
 export interface UserData {
   completed: string[];
   intensities: Record<string, number>;
@@ -80,6 +93,7 @@ export interface UserData {
   nutritionHistory: NutritionHistoryEntry[];
   masterExerciseList: string[];
   skipReasons?: Record<string, string>;
+  chatHistory?: WeeklyChat[]; // Array of weekly chat sessions
 }
 
 export interface SkillNode {

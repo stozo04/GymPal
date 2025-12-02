@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { TrendingUp, Search, ChevronDown, Utensils, Dumbbell, Scale, Ruler, LineChart } from 'lucide-react';
-import { BodyStats, HistoryEntry, NutritionHistoryEntry, NutritionLog } from '../types';
+import { TrendingUp, Search, ChevronDown, Utensils, Dumbbell, Scale, Ruler, LineChart, MessageCircle } from 'lucide-react';
+import { BodyStats, HistoryEntry, NutritionHistoryEntry, NutritionLog, WeeklyChat } from '../types';
 import { NutritionChart } from './NutritionChart';
 
 interface HistoryViewProps {
@@ -12,12 +12,13 @@ interface HistoryViewProps {
   weekStartDate: string | null;
   masterExerciseList: string[];
   bodyStats: BodyStats;
+  chatHistory?: WeeklyChat[];
 }
 
 export const HistoryView: React.FC<HistoryViewProps> = ({ 
-    exerciseHistory, actuals, planItems, nutritionHistory, currentNutrition, weekStartDate, masterExerciseList, bodyStats
+  exerciseHistory, actuals, planItems, nutritionHistory, currentNutrition, weekStartDate, masterExerciseList, bodyStats, chatHistory = []
 }) => {
-  const [activeTab, setActiveTab] = useState<'strength' | 'nutrition' | 'body'>('strength');
+  const [activeTab, setActiveTab] = useState<'strength' | 'nutrition' | 'body' | 'coach'>('strength');
   const [selectedExercise, setSelectedExercise] = useState('');
   const [expandedEx, setExpandedEx] = useState<string | null>(null);
 
@@ -137,6 +138,12 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
              >
                 <LineChart className="w-4 h-4" /> Body
              </button>
+          <button
+            onClick={() => setActiveTab('coach')}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'coach' ? 'bg-slate-700 text-blue-400 shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <MessageCircle className="w-4 h-4" /> Coach
+          </button>
           </div>
 
           {/* Strength Filter */}
@@ -331,6 +338,69 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 </div>
               </div>
             )}
+
+        {activeTab === 'coach' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-2">
+            {chatHistory.length === 0 ? (
+              <div className="text-center py-16 bg-slate-900/40 rounded-3xl border border-white/5 border-dashed">
+                <MessageCircle className="w-12 h-12 text-blue-400/30 mx-auto mb-4" />
+                <div className="text-slate-400">
+                  <p className="font-bold mb-1">No coach conversations yet</p>
+                  <p className="text-sm">Chat with your AI Coach to see archived conversations here!</p>
+                </div>
+              </div>
+            ) : (
+              chatHistory.map((week) => (
+                <div key={week.weekNumber} className="bg-slate-900/40 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden">
+                  <div className="px-5 py-4 bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border-b border-white/5">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-bold text-white">Week {week.weekNumber}</h4>
+                        <p className="text-[10px] text-slate-400 mt-1">
+                          {new Date(week.weekStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {' '}-{' '}
+                          {new Date(new Date(week.weekStartDate).getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-mono bg-blue-900/50 text-blue-300 px-2.5 py-1.5 rounded border border-blue-500/30 font-bold">
+                        {week.messages.length} messages
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-5 space-y-3">
+                    {week.summary ? (
+                      <div className="bg-white/5 border border-blue-500/20 rounded-xl p-4">
+                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Weekly Summary</p>
+                        <p className="text-sm text-slate-200 leading-relaxed">{week.summary}</p>
+                      </div>
+                    ) : (
+                      <div className="bg-white/5 border border-slate-500/20 rounded-xl p-4">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">No Summary</p>
+                        <p className="text-sm text-slate-400">{week.messages.length} conversation(s) to review</p>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recent Messages</p>
+                      {week.messages.slice(0, 3).map((msg, idx) => (
+                        <div key={idx} className={`bg-white/5 rounded-xl p-3 border border-white/5 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                          <p className="text-[10px] font-bold text-slate-500 mb-1">
+                            {msg.role === 'user' ? 'You' : 'Coach'}
+                          </p>
+                          <p className="text-sm text-slate-300 line-clamp-2">{msg.text}</p>
+                        </div>
+                      ))}
+                      {week.messages.length > 3 && (
+                        <p className="text-[10px] text-slate-500 text-center py-2">... {week.messages.length - 3} more messages</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

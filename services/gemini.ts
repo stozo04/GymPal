@@ -1,5 +1,5 @@
 import { GoogleGenAI, Chat } from "@google/genai";
-import { UserData } from "../types";
+import { UserData, ChatMessage } from "../types";
 
 const SYSTEM_INSTRUCTION = `
 You are 'GymPal Coach', a specialized fitness expert for a specific user.
@@ -20,12 +20,14 @@ YOUR ROLE:
 
 export const geminiService = {
   createChatSession: (): Chat | null => {
-    if (!process.env.API_KEY) return null;
-    
+    if (!process.env.VITE_GOOGLE_GENAI_API_KEY) return null;
+
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({
+        apiKey: process.env.VITE_GOOGLE_GENAI_API_KEY,
+      });
       const chat = ai.chats.create({
-        model: 'gemini-2.5-flash',
+        model: "gemini-2.5-flash",
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
         },
@@ -38,13 +40,15 @@ export const geminiService = {
   },
 
   analyzeProgress: async (data: UserData): Promise<string> => {
-    if (!process.env.API_KEY) {
+    if (!process.env.VITE_GOOGLE_GENAI_API_KEY) {
       return "AI Analysis unavailable: No API Key provided in environment.";
     }
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      
+      const ai = new GoogleGenAI({
+        apiKey: process.env.VITE_GOOGLE_GENAI_API_KEY,
+      });
+
       const prompt = `
         Analyze this weekly workout data for a 40yo male with L4/L5 back issues aiming for calisthenics:
         
@@ -61,7 +65,7 @@ export const geminiService = {
       `;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: "gemini-2.5-flash",
         contents: prompt,
       });
 
@@ -70,5 +74,50 @@ export const geminiService = {
       console.error("Gemini API Error:", error);
       return "AI Analysis failed to load. Please check your connection.";
     }
-  }
+  },
+
+  generateChatSummary: async (
+    chatMessages: ChatMessage[],
+    weekNum: number
+  ): Promise<string> => {
+    if (!process.env.VITE_GOOGLE_GENAI_API_KEY) {
+      return "Chat summary unavailable: No API Key provided.";
+    }
+
+    try {
+      const ai = new GoogleGenAI({
+        apiKey: process.env.VITE_GOOGLE_GENAI_API_KEY,
+      });
+
+      const conversationText = chatMessages
+        .map((msg) => `${msg.role === "user" ? "User" : "Coach"}: ${msg.text}`)
+        .join("\n\n");
+
+      const prompt = `
+You are analyzing a week of conversation between a fitness coach and a 40-year-old athlete with L4/L5 back issues pursuing calisthenics goals.
+
+Here's the conversation from Week ${weekNum}:
+
+${conversationText}
+
+Please provide a concise summary (3-4 sentences) covering:
+1. Key concerns or pain points mentioned
+2. Progress indicators or wins discussed
+3. Main advice given or strategies discussed
+4. Recommended focus for next week
+
+Keep it actionable and motivating.
+      `;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+      });
+
+      return response.text || "Could not generate chat summary.";
+    } catch (error) {
+      console.error("Gemini Chat Summary Error:", error);
+      return "Failed to generate chat summary.";
+    }
+  },
 };
