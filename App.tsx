@@ -4,17 +4,13 @@ import {
   Dumbbell, 
   Activity, 
   Utensils,
-  Save,
   Loader2,
-  BarChart3,
   RefreshCw,
-  Scale,
   Trophy,
   History,
   Home,
   ChevronRight,
   Settings,
-  MoreVertical,
   ChevronDown,
   X
 } from 'lucide-react';
@@ -24,7 +20,7 @@ import { SAFE_ALTERNATIVES, INITIAL_PLAN, SKILL_TREES, SPEEDIANCE_LIBRARY } from
 import { Plan, DayPlan, NutritionLog, BodyStats, HistoryEntry, NutritionHistoryEntry, UserData, Exercise, WeeklyChat, ChatMessage } from './types';
 import { storageService } from './services/storage';
 import { geminiService } from './services/gemini';
-import { StatCard } from './components/StatCard';
+import { LandingPage } from './components/LandingPage';
 import { SkillCard } from './components/SkillCard';
 import WorkoutView from './components/WorkoutView';
 import { AiCoach } from './components/AiCoach';
@@ -72,6 +68,7 @@ const generateSeedList = () => {
 };
 
 export default function App() {
+  const [showLanding, setShowLanding] = useState(true);
   const [activeTab, setActiveTab] = useState('schedule');
   const [plan, setPlan] = useState<Plan | null>(null);
   const [completedWorkouts, setCompletedWorkouts] = useState<string[]>([]);
@@ -699,6 +696,22 @@ export default function App() {
 
   const activeWorkoutData = plan[activeTab];
 
+  // Show landing page if not logged in
+  if (showLanding) {
+    return (
+      <div>
+        <LandingPage />
+        {/* Temp button to enter app - will be replaced by auth */}
+        <button
+          onClick={() => setShowLanding(false)}
+          className="fixed bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-semibold z-50 shadow-lg"
+        >
+          Skip to App (Temp)
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-safe">
       
@@ -740,7 +753,7 @@ export default function App() {
                         onClick={() => { setShowCheckIn(true); setShowMenu(false); }}
                         className="w-full flex items-center gap-3 px-3 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors text-left"
                       >
-                          <Scale className="w-4 h-4 text-purple-400" />
+                    <img src="/assets/scale_icon_1.svg" alt="Weight Scale" className="w-4 h-4" style={{ filter: 'brightness(0) saturate(100%) invert(100%)' }} />
                           Log Body Stats
                       </button>
                       <button 

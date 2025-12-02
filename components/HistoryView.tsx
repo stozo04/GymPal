@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { TrendingUp, Search, ChevronDown, Utensils, Dumbbell, Scale, Ruler, LineChart, MessageCircle } from 'lucide-react';
+import { TrendingUp, Search, ChevronDown, Utensils, Dumbbell, Ruler, LineChart, MessageCircle } from 'lucide-react';
 import { BodyStats, HistoryEntry, NutritionHistoryEntry, NutritionLog, WeeklyChat } from '../types';
 import { NutritionChart } from './NutritionChart';
 
@@ -21,6 +21,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const [activeTab, setActiveTab] = useState<'strength' | 'nutrition' | 'body' | 'coach'>('strength');
   const [selectedExercise, setSelectedExercise] = useState('');
   const [expandedEx, setExpandedEx] = useState<string | null>(null);
+  const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
 
   const getCombinedHistory = (name: string): HistoryEntry[] => {
     const historical = exerciseHistory[name] || [];
@@ -286,7 +287,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               <div className="space-y-4 animate-in fade-in slide-in-from-left-2">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="bg-slate-900/60 rounded-2xl border border-white/5 p-4 flex items-center gap-3">
-                    <Scale className="w-5 h-5 text-blue-400" />
+                <img src="/assets/scale_icon.svg" alt="Weight Scale" className="w-5 h-5" />
                     <div>
                       <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Weight</div>
                       <div className="text-xl font-bold text-white">{latestBody?.weight || bodyStats.weight || '-'} lbs</div>
@@ -382,18 +383,20 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     )}
 
                     <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recent Messages</p>
-                      {week.messages.slice(0, 3).map((msg, idx) => (
-                        <div key={idx} className={`bg-white/5 rounded-xl p-3 border border-white/5 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                          <p className="text-[10px] font-bold text-slate-500 mb-1">
-                            {msg.role === 'user' ? 'You' : 'Coach'}
-                          </p>
-                          <p className="text-sm text-slate-300 line-clamp-2">{msg.text}</p>
-                        </div>
-                      ))}
-                      {week.messages.length > 3 && (
-                        <p className="text-[10px] text-slate-500 text-center py-2">... {week.messages.length - 3} more messages</p>
-                      )}
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">All Messages</p>
+                      <div className="max-h-96 overflow-y-auto pr-2 space-y-2">
+                        {week.messages.map((msg, idx) => (
+                          <div key={idx} className={`rounded-xl p-3 border ${msg.role === 'user' ? 'bg-blue-900/30 border-blue-500/30' : 'bg-slate-800/30 border-slate-600/30'}`}>
+                            <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase">
+                              {msg.role === 'user' ? '👤 You' : '🤖 Coach'}
+                            </p>
+                            <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                            <p className="text-[8px] text-slate-500 mt-2">
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>

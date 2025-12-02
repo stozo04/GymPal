@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { X, Scale, CheckCircle2, Calendar } from 'lucide-react';
+import { X, CheckCircle2, Calendar } from 'lucide-react';
 import { BodyStats } from '../types';
 
 interface CheckInModalProps {
@@ -26,7 +26,7 @@ export const CheckInModal: React.FC<CheckInModalProps> = ({
         <div className="p-8 relative z-10">
             <div className="flex flex-col items-center text-center mb-8">
                 <div className="p-4 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl shadow-lg shadow-purple-900/30 mb-4">
-                    <Scale className="w-8 h-8 text-white" />
+              <img src="/assets/scale_icon.svg" alt="Weight Scale" className="w-8 h-8" />
                 </div>
                 <h3 className="text-xl font-bold text-white">Body Check-in</h3>
                 <p className="text-sm text-slate-400 mt-1">Track your physique progress</p>
