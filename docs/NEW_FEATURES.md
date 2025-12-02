@@ -37,24 +37,7 @@ useEffect(() => {
 // Toggle button in header
 ```
 
----
 
-### 2. **Weekly PDF Export**
-**Why:** Share progress with PT, keep records, offline backup  
-**Implementation:** Use `html2pdf` library, generate from HistoryView data  
-**Time:** 1 hour  
-**Value:** 7/10 - Offline credibility
-
-```typescript
-// Trigger in HistoryView
-const exportWeekPDF = async (weekData: WeeklyChat) => {
-  const doc = new jsPDF();
-  doc.text(`Week ${weekData.weekNumber} Summary`, 10, 10);
-  doc.text(`Date: ${weekData.weekStartDate}`, 10, 20);
-  doc.text(`Summary: ${weekData.summary}`, 10, 30);
-  doc.save(`GymPal-Week${weekData.weekNumber}.pdf`);
-};
-```
 
 ---
 
@@ -111,25 +94,6 @@ const WorkRestCycle = ({ workSeconds, restSeconds, sets }) => {
 
 ## 💎 HIGH VALUE FEATURES (Medium Impact, Medium Effort)
 
-### 6. **AI-Generated Form Video Recommendations with Timestamps**
-**Why:** You said "YouTube references" but this takes it to next level—coach knows your exact weakness  
-**Implementation:** Coach sends video URL + timestamp, you click → opens YouTube at exact frame  
-**Time:** 2 hours  
-**Value:** 9/10 - Prevents form injuries before they happen
-
-```typescript
-// In AiCoach response parsing
-const parseVideoRecommendation = (text: string) => {
-  // Find patterns like "YouTube: diamond-pushup-form?t=45"
-  // Create clickable links: https://youtube.com/watch?v=XXX&t=45s
-};
-
-// Example coach response:
-// "Diamond pushup form: YouTube: diamond-pushup-form?t=1m15s 
-//  (watch from 1:15 to see hand position)"
-```
-
----
 
 ### 7. **Weekly Habit Streaks with Milestone Celebrations**
 **Why:** Gamification drives consistency—your success metric  
@@ -349,22 +313,6 @@ const scheduleCoachReminder = () => {
 // Shareable as PDF or email
 ```
 
----
-
-### 19. **Social Proof / Leaderboard (Optional)**
-**Why:** If you share this app—see others' progress anonymously  
-**Implementation:** Firebase collection with anonymized stats  
-**Time:** 4 hours  
-**Value:** 6/10 - Gamification (risky if feels creepy)
-
-```typescript
-// Anonymous leaderboard:
-// - Most consistent (workout weeks completed)
-// - Fastest strength gains
-// - Most improved flexibility
-// 
-// No personal info—just achievements
-```
 
 ---
 

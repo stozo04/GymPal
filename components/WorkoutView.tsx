@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   CheckCircle2, 
@@ -60,6 +59,20 @@ export default function WorkoutView({
   const exerciseOptions = useMemo(() => {
     return (masterExerciseList || []).sort();
   }, [masterExerciseList]);
+
+  const allDayItemIds = useMemo(() => data.sections.flatMap(s => s.items).map(i => i.id), [data.sections]);
+  const isAllDayItemsCompleted = useMemo(() => allDayItemIds.every(id => completed.includes(id)), [allDayItemIds, completed]);
+
+  const dailyAvgRPE = useMemo(() => {
+    if (!isAllDayItemsCompleted) return null;
+    const rpeValues = allDayItemIds
+      .map(id => intensities[id])
+      .filter(val => val !== undefined && val > 0) as number[];
+
+    if (rpeValues.length === 0) return null;
+    const sumRPE = rpeValues.reduce((acc, val) => acc + val, 0);
+    return (sumRPE / rpeValues.length).toFixed(1);
+  }, [allDayItemIds, isAllDayItemsCompleted, intensities]);
 
   const handleSaveAdd = () => {
     if (!newEx.name) return;
@@ -141,55 +154,40 @@ export default function WorkoutView({
                 <h2 className="text-xl font-extrabold text-white capitalize flex items-center gap-2">
                 {data.title.split(':')[0]}
                 <span className="text-slate-500 font-medium text-base">({dateLabel})</span>
+              {isAllDayItemsCompleted && dailyAvgRPE && (
+                <span className="text-[10px] font-bold text-blue-300 bg-blue-900/30 px-2 py-1 rounded-lg border border-blue-500/20 uppercase tracking-wider ml-2">
+                  RPE: {dailyAvgRPE} / 10
+                </span>
+              )}
                 </h2>
                 <p className="text-slate-400 text-sm mt-1 max-w-[80%]">
                     {backSaverMode ? "Rehab Mode Active: Reduced impact." : data.subtitle}
                 </p>
             </div>
             
-          <div className="flex items-center gap-2 bg-white/5 rounded-xl px-2 py-1">
-            <button
-              onClick={() => setBackSaverMode(!backSaverMode)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all text-[11px] font-bold uppercase tracking-wide ${backSaverMode
-                ? 'bg-emerald-500/10 border-emerald-400/40 text-emerald-200'
-                : 'bg-slate-900/60 border-slate-700 text-slate-200 hover:text-white'
-                }`}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              {backSaverMode ? "Back Saver Active" : "Enable Back Saver"}
-            </button>
-            <button
-              onClick={onSkipDay}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-500/40 text-red-100 bg-red-900/30 hover:bg-red-900/50 transition-all text-[11px] font-bold uppercase tracking-wide"
-            >
-              <X className="w-4 h-4" />
-              Skip Workout
-            </button>
-          </div>
+          {!isAllDayItemsCompleted && (
+            <div className="flex items-center gap-2 bg-white/5 rounded-xl px-2 py-1">
+              <button
+                onClick={() => setBackSaverMode(!backSaverMode)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all text-[11px] font-bold uppercase tracking-wide ${backSaverMode
+                  ? 'bg-emerald-500/10 border-emerald-400/40 text-emerald-200'
+                  : 'bg-slate-900/60 border-slate-700 text-slate-200 hover:text-white'
+                  }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                {backSaverMode ? "Back Saver Active" : "Enable Back Saver"}
+              </button>
+              <button
+                onClick={onSkipDay}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-500/40 text-red-100 bg-red-900/30 hover:bg-red-900/50 transition-all text-[11px] font-bold uppercase tracking-wide"
+              >
+                <X className="w-4 h-4" />
+                Skip Workout
+              </button>
+            </div>
+          )}
         </div>
-        </div>
-
-      {data.sections.length === 0 && (
-        <div className="text-center py-12 bg-slate-900/30 rounded-3xl border border-slate-800 border-dashed">
-          <p className="text-slate-500 mb-6 text-sm">No scheduled exercises.</p>
-          <div className="flex flex-col gap-3 px-10 max-w-xs mx-auto">
-             <button 
-                onClick={onCompleteDay} 
-                className="w-full px-5 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2"
-             >
-                <CheckCircle2 className="w-5 h-5" />
-                Mark Day Complete
-             </button>
-             <button 
-                onClick={() => setIsAdding(true)} 
-                className="w-full px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
-             >
-                <Plus className="w-5 h-5" />
-                Add Exercise
-             </button>
-          </div>
-        </div>
-      )}
+      </div>
 
       {data.sections.map((section, idx) => (
         <div key={idx} className={`rounded-3xl border overflow-hidden transition-all ${
@@ -320,16 +318,37 @@ export default function WorkoutView({
         </div>
       ))}
 
-      {/* Add Exercise Button */}
-      {data.sections.length > 0 && !isAdding && (
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="w-full py-4 border border-dashed border-slate-700 rounded-2xl text-slate-500 font-bold hover:border-blue-500 hover:text-blue-400 hover:bg-blue-500/5 transition-all flex items-center justify-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Add Exercise
-        </button>
+      {data.sections.length > 0 && (
+        <div className="mt-8 flex flex-col gap-3 px-10 max-w-xs mx-auto">
+          {isAllDayItemsCompleted && dailyAvgRPE && (
+            <div className="w-full p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl text-blue-200 text-center font-bold text-sm mb-2 shadow-lg shadow-blue-900/20">
+              Day Average RPE: {dailyAvgRPE} / 10
+            </div>
+          )}
+          <button
+            onClick={onCompleteDay}
+            disabled={isAllDayItemsCompleted} // Disable if day is completed
+            className={`w-full px-5 py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2 ${isAllDayItemsCompleted
+                ? 'bg-slate-700 text-slate-300 cursor-not-allowed' // Grayed out if completed
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+              }`}
+          >
+            <CheckCircle2 className="w-5 h-5" />
+            {isAllDayItemsCompleted ? 'Day Completed' : 'Mark Day Complete'} {/* Change text */}
+          </button>
+          {!isAllDayItemsCompleted && !isAdding && (
+            <button
+              onClick={() => setIsAdding(true)}
+              className="w-full px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Add Exercise
+            </button>
+          )}
+        </div>
       )}
+
+      {/* Add Exercise Modal */}
 
       {/* Swap Modal */}
       {swapConfig && (

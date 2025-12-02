@@ -516,11 +516,12 @@ export default function App() {
         const day = plan[dayKey];
         day.sections.forEach(s => {
             s.items.forEach(item => {
-                if (actuals[item.id]) {
+              // Only save to history if the workout item was completed
+              if (completedWorkouts.includes(item.id)) {
                     if (!newHistory[item.name]) newHistory[item.name] = [];
                     newHistory[item.name].unshift({
                         date: getFormattedDate(dayKey) || newStartDate,
-                        value: actuals[item.id],
+                      value: actuals[item.id] || 'Completed', // Use actuals if available, else 'Completed'
                         note: `RPE ${intensities[item.id] || '-'}`
                     });
                 }
@@ -634,6 +635,12 @@ export default function App() {
     const newPlan = JSON.parse(JSON.stringify(plan));
     const day = newPlan[dayKey];
     
+    // Check if this day has actual exercise sections (not just Status)
+    const hasExercises = day.sections.some((s: any) => s.title !== "Status" && s.items && s.items.length > 0);
+
+    // Only add rest day status if this is actually a rest day (no exercises)
+    if (hasExercises) return;
+
     let statusSection = day.sections.find((s: any) => s.title === "Status");
     if (!statusSection) {
         statusSection = { title: "Status", items: [] };
@@ -945,6 +952,11 @@ export default function App() {
         {activeTab === 'admin' && (
             <AdminView 
                 exerciseList={masterExerciseList} 
+            exerciseHistory={exerciseHistory}
+            completedWorkouts={completedWorkouts}
+            intensities={intensities}
+            weekStartDate={weekStartDate}
+            bodyStats={bodyStats}
                 onAdd={addMasterExercise} 
                 onDelete={deleteMasterExercise} 
             />
