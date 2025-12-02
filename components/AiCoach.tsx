@@ -29,7 +29,12 @@ export const AiCoach: React.FC<AiCoachProps> = ({ onMessagesUpdate }) => {
 
   useEffect(() => {
     const session = geminiService.createChatSession();
-    if (session) setChatSession(session);
+    if (session) {
+      setChatSession(session);
+      console.log('[AiCoach] Chat session initialized successfully');
+    } else {
+      console.error('[AiCoach] Failed to create chat session - check API key');
+    }
   }, []);
 
   useEffect(() => {
@@ -62,7 +67,15 @@ export const AiCoach: React.FC<AiCoachProps> = ({ onMessagesUpdate }) => {
   }, []);
 
   const handleSend = async () => {
-    if (!input.trim() || !chatSession) return;
+    if (!input.trim()) {
+      console.warn('Empty input');
+      return;
+    }
+
+    if (!chatSession) {
+      console.error('Chat session not initialized', { chatSession });
+      return;
+    }
 
     const userMsg = input.trim();
     const timestamp = new Date().toISOString();
@@ -202,8 +215,10 @@ export const AiCoach: React.FC<AiCoachProps> = ({ onMessagesUpdate }) => {
           />
           <button 
             onClick={handleSend}
-            disabled={!input.trim() || isTyping}
-            className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:bg-transparent transition-all"
+            disabled={!input.trim() || isTyping || !chatSession}
+            className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            type="button"
+            title={!chatSession ? "Chat session loading..." : "Send message"}
           >
             <Send className="w-4 h-4" />
           </button>
