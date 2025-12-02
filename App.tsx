@@ -17,7 +17,7 @@ import {
 import confetti from 'canvas-confetti';
 
 import { SAFE_ALTERNATIVES, INITIAL_PLAN, SKILL_TREES, SPEEDIANCE_LIBRARY } from './constants';
-import { Plan, DayPlan, NutritionLog, BodyStats, HistoryEntry, NutritionHistoryEntry, UserData, Exercise, WeeklyChat, ChatMessage } from './types';
+import { Plan, DayPlan, NutritionLog, BodyStats, HistoryEntry, NutritionHistoryEntry, UserData, Exercise, WeeklyChat, ChatMessage, WorkoutOverride, Section } from './types';
 import { storageService } from './services/storage';
 import { geminiService } from './services/gemini';
 import { LandingPage } from './components/LandingPage';
@@ -93,6 +93,7 @@ export default function App() {
   const [skipReason, setSkipReason] = useState('');
   const [pendingSkipDay, setPendingSkipDay] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [workoutOverrides, setWorkoutOverrides] = useState<Record<string, WorkoutOverride>>({});
 
   // Ref to capture current week's chat messages from AiCoach component
   const currentWeekChatMessagesRef = useRef<ChatMessage[]>([]);
@@ -118,6 +119,7 @@ export default function App() {
         setNutritionHistory(data.nutritionHistory || []);
         setSkipReasons(data.skipReasons || {});
         setChatHistory(data.chatHistory || []);
+        setWorkoutOverrides(data.workoutOverrides || {});
         
         // Ensure skill levels are initialized
         const initialSkills: Record<string, number> = {};
@@ -389,6 +391,41 @@ export default function App() {
 
     setPlan(newPlan);
     storageService.saveUserData({ plan: newPlan });
+  };
+
+  const applyCoachOverride = (dayKey: string, coachText: string, overrideSections: Section[]) => {
+    if (!plan) return;
+
+    const originalSections = plan[dayKey].sections;
+    const timestamp = new Date().toISOString();
+
+    // Create override record
+    const override: WorkoutOverride = {
+      dayKey,
+      timestamp,
+      reason: coachText,
+      originalSections: JSON.parse(JSON.stringify(originalSections)),
+      overriddenSections: JSON.parse(JSON.stringify(overrideSections))
+    };
+
+    // Update plan with new sections
+    const newPlan = JSON.parse(JSON.stringify(plan));
+    newPlan[dayKey].sections = overrideSections;
+
+    // Update state
+    setPlan(newPlan);
+    const newOverrides = { ...workoutOverrides, [dayKey]: override };
+    setWorkoutOverrides(newOverrides);
+
+    // Save to Firebase
+    storageService.saveUserData({
+      plan: newPlan,
+      workoutOverrides: newOverrides
+    }).then(() => {
+      setToast({ type: 'success', message: `${dayKey.charAt(0).toUpperCase() + dayKey.slice(1)} workout overridden with coach recommendation` });
+    }).catch(() => {
+      setToast({ type: 'error', message: 'Failed to save workout override' });
+    });
   };
 
   const calculateProgressionAndRotation = (currentPlan: Plan, intensities: Record<string, number>, chatContext?: string) => {
@@ -907,6 +944,8 @@ export default function App() {
             onBack={() => setActiveTab('schedule')}
             onCompleteDay={() => handleCompleteRestDay(activeTab)}
             onSkipDay={() => skipDay(activeTab)}
+            currentOverride={workoutOverrides[activeTab]}
+            onApplyOverride={applyCoachOverride}
           />
         )}
 

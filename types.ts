@@ -78,6 +78,14 @@ export interface WeeklyChat {
   summary?: string; // AI-generated summary of the week's conversation
 }
 
+export interface WorkoutOverride {
+  dayKey: string;
+  timestamp: string;
+  reason: string; // Coach's reason for the override
+  originalSections: Section[]; // Backup of original sections
+  overriddenSections: Section[]; // New sections from coach recommendation
+}
+
 export interface UserData {
   completed: string[];
   intensities: Record<string, number>;
@@ -94,6 +102,7 @@ export interface UserData {
   masterExerciseList: string[];
   skipReasons?: Record<string, string>;
   chatHistory?: WeeklyChat[]; // Array of weekly chat sessions
+  workoutOverrides?: Record<string, WorkoutOverride>; // Coach overrides by day key (e.g., "monday", "tuesday")
 }
 
 export interface SkillNode {

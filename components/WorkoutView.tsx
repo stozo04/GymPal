@@ -10,12 +10,14 @@ import {
   ShieldCheck,
   Search,
   ChevronDown,
-  ArrowLeft
+  ArrowLeft,
+  Zap
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { DayPlan, NutritionLog, Exercise } from '../types';
+import { DayPlan, NutritionLog, Exercise, Section, WorkoutOverride } from '../types';
 import { SAFE_ALTERNATIVES } from '../constants';
 import { Timer } from './Timer';
+import { parseCoachRecommendation, groupExercisesIntoSections } from '../services/overrideParser';
 
 interface WorkoutViewProps {
   dayKey: string;
@@ -34,6 +36,8 @@ interface WorkoutViewProps {
   onBack: () => void;
   onCompleteDay: () => void;
   onSkipDay: () => void;
+  currentOverride?: WorkoutOverride;
+  onApplyOverride: (dayKey: string, coachText: string, sections: Section[]) => void;
 }
 
 interface SwapConfig {
@@ -45,7 +49,8 @@ interface SwapConfig {
 
 export default function WorkoutView({ 
   dayKey, dateLabel, data, completed, intensities, actuals, lastWeekActuals, masterExerciseList,
-  toggle, setIntensity, setActual, onAddExercise, onSwap, onBack, onCompleteDay, onSkipDay
+  toggle, setIntensity, setActual, onAddExercise, onSwap, onBack, onCompleteDay, onSkipDay,
+  currentOverride, onApplyOverride
 }: WorkoutViewProps) {
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -53,6 +58,10 @@ export default function WorkoutView({
   const [backSaverMode, setBackSaverMode] = useState(false);
   const [isCustomInput, setIsCustomInput] = useState(false);
   const [swapConfig, setSwapConfig] = useState<SwapConfig | null>(null);
+  const [showOverrideModal, setShowOverrideModal] = useState(false);
+  const [overrideText, setOverrideText] = useState('');
+  const [previewSections, setPreviewSections] = useState<Section[]>([]);
+  const [overrideStep, setOverrideStep] = useState<'input' | 'preview'>('input');
 
   // Filter master list based on newEx.name input if needed, or just use it directly
   // Here we just use the master list for the dropdown
@@ -80,6 +89,29 @@ export default function WorkoutView({
     setIsAdding(false);
     setNewEx({ name: '', sets: '3', reps: '10', weight: '' });
     setIsCustomInput(false);
+  };
+
+  const handlePreviewOverride = () => {
+    if (!overrideText.trim()) return;
+    const exercises = parseCoachRecommendation(overrideText);
+    const sections = groupExercisesIntoSections(exercises);
+    setPreviewSections(sections);
+    setOverrideStep('preview');
+  };
+
+  const handleConfirmOverride = () => {
+    onApplyOverride(dayKey, overrideText, previewSections);
+    setShowOverrideModal(false);
+    setOverrideText('');
+    setPreviewSections([]);
+    setOverrideStep('input');
+  };
+
+  const resetOverrideModal = () => {
+    setShowOverrideModal(false);
+    setOverrideText('');
+    setPreviewSections([]);
+    setOverrideStep('input');
   };
 
   const getIntensityEmoji = (val: number) => {
@@ -149,6 +181,13 @@ export default function WorkoutView({
             <ArrowLeft className="w-3 h-3" /> Back
         </button>
 
+        {/* Coach Override Badge */}
+        {currentOverride && (
+          <div className="absolute top-5 right-24 text-[10px] bg-purple-500/20 text-purple-300 px-2.5 py-1 rounded-full border border-purple-500/40 font-bold uppercase tracking-wider flex items-center gap-1">
+            <Zap className="w-3 h-3" /> Coach Override
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-3">
             <div>
                 <h2 className="text-xl font-extrabold text-white capitalize flex items-center gap-2">
@@ -167,6 +206,14 @@ export default function WorkoutView({
             
           {!isAllDayItemsCompleted && (
             <div className="flex items-center gap-2 bg-white/5 rounded-xl px-2 py-1">
+              <button
+                onClick={() => setShowOverrideModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-purple-500/40 text-purple-100 bg-purple-900/30 hover:bg-purple-900/50 transition-all text-[11px] font-bold uppercase tracking-wide"
+                title="Override this workout with coach recommendation"
+              >
+                <Zap className="w-4 h-4" />
+                Coach Override
+              </button>
               <button
                 onClick={() => setBackSaverMode(!backSaverMode)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all text-[11px] font-bold uppercase tracking-wide ${backSaverMode
@@ -458,6 +505,102 @@ export default function WorkoutView({
               Confirm Addition
             </button>
           </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coach Override Modal */}
+      {showOverrideModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-slate-900/90 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-white/5 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <Zap className="w-5 h-5 text-purple-400" />
+                <h3 className="font-bold text-white text-lg">Coach Workout Override</h3>
+              </div>
+              <button onClick={resetOverrideModal} className="p-2 bg-white/5 rounded-full hover:bg-white/10"><X className="w-5 h-5 text-slate-300" /></button>
+            </div>
+
+            {overrideStep === 'input' ? (
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="text-xs text-slate-400 uppercase font-bold block mb-2">Paste Coach Recommendation</label>
+                  <textarea
+                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-purple-500/50 transition-colors resize-none h-48"
+                    placeholder={'Example:\n\n1. **Elliptical:** 20-30 minutes at a very light, conversational pace.\n2. **Mobility Focus:**\n   * **Cat-Cow (5-10 reps):** Start on all fours...\n   * **Bird-Dog (5-10 reps per side):** From the same all-fours position...'}
+                    value={overrideText}
+                    onChange={(e) => setOverrideText(e.target.value)}
+                  />
+                </div>
+                <p className="text-xs text-slate-400">
+                  Paste the coach's recommendation here. The AI will parse exercises, sets, reps, and descriptions.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={resetOverrideModal}
+                    className="flex-1 px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:text-white font-bold text-sm transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePreviewOverride}
+                    disabled={!overrideText.trim()}
+                    className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm transition-all shadow-lg shadow-purple-900/20"
+                  >
+                    Preview Exercises
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <h4 className="font-bold text-white mb-3">Parsed Exercises</h4>
+                  <p className="text-xs text-slate-400 mb-4">
+                    Review the parsed exercises below. These will replace your {data.title.split(':')[0]} workout.
+                  </p>
+                </div>
+
+                {previewSections.map((section, sIdx) => (
+                  <div key={sIdx} className="rounded-2xl bg-slate-900/60 border border-white/5 overflow-hidden">
+                    <div className="px-4 py-2 bg-white/5 border-b border-white/5">
+                      <h5 className="font-bold text-slate-200 text-sm">{section.title}</h5>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                      {section.items.map((item, iIdx) => (
+                        <div key={iIdx} className="p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <h6 className="font-bold text-slate-100">{item.name}</h6>
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-xs font-mono mb-2">
+                            {item.sets && <span className="px-2 py-0.5 bg-slate-800/80 rounded text-slate-400">{item.sets} sets</span>}
+                            {item.reps && <span className="px-2 py-0.5 bg-blue-500/10 rounded text-blue-300">{item.reps}</span>}
+                            {item.val > 0 && <span className="px-2 py-0.5 bg-emerald-500/10 rounded text-emerald-400">{item.val} {item.unit}</span>}
+                          </div>
+                          {item.note && <p className="text-xs text-slate-400">{item.note}</p>}
+                          {item.desc && <p className="text-xs text-slate-500 mt-1">{item.desc}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex gap-3 mt-6 pt-4 border-t border-white/5">
+                  <button
+                    onClick={() => setOverrideStep('input')}
+                    className="flex-1 px-4 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:text-white font-bold text-sm transition-all"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleConfirmOverride}
+                    className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-sm transition-all shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Apply Override
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
